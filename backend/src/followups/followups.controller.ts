@@ -18,7 +18,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 @ApiTags('Follow-ups')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('followups')
+@Controller('follow-ups')
 export class FollowUpsController {
   constructor(private readonly followUpsService: FollowUpsService) {}
 

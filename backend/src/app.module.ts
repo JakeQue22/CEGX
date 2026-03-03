@@ -18,6 +18,7 @@ import { FollowUpsModule } from './followups/followups.module';
 import { ActivityModule } from './activity/activity.module';
 import { SearchModule } from './search/search.module';
 import { AutomationsModule } from './automations/automations.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { AutomationsModule } from './automations/automations.module';
     ActivityModule,
     SearchModule,
     AutomationsModule,
+    HealthModule,
   ],
 })
 export class AppModule {}

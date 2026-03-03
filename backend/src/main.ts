@@ -23,8 +23,8 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Global prefix
-  app.setGlobalPrefix('api');
+  // Global prefix (health endpoint excluded so Docker healthcheck works without auth)
+  app.setGlobalPrefix('api', { exclude: ['health'] });
 
   // Global validation pipe
   app.useGlobalPipes(

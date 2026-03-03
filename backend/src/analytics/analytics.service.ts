@@ -250,17 +250,4 @@ export class AnalyticsService {
     };
   }
 
-  private buildDateFilter(status: string, from?: string, to?: string) {
-    return {
-      status,
-      ...(from || to
-        ? {
-            closedAt: {
-              ...(from ? { gte: new Date(from) } : {}),
-              ...(to ? { lte: new Date(to) } : {}),
-            },
-          }
-        : {}),
-    };
-  }
 }
