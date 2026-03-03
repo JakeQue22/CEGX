@@ -1,0 +1,56 @@
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { BullModule } from '@nestjs/bull';
+import { PrismaModule } from './common/prisma/prisma.module';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
+import { SettingsModule } from './settings/settings.module';
+import { SuppliersModule } from './suppliers/suppliers.module';
+import { ProductsModule } from './products/products.module';
+import { CategoriesModule } from './categories/categories.module';
+import { PipelineModule } from './pipeline/pipeline.module';
+import { DealsModule } from './deals/deals.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { CampaignsModule } from './campaigns/campaigns.module';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { FollowUpsModule } from './followups/followups.module';
+import { ActivityModule } from './activity/activity.module';
+import { SearchModule } from './search/search.module';
+import { AutomationsModule } from './automations/automations.module';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        redis: configService.get<string>('REDIS_URL', 'redis://localhost:6379'),
+      }),
+      inject: [ConfigService],
+    }),
+    PrismaModule,
+    AuthModule,
+    UsersModule,
+    SettingsModule,
+    SuppliersModule,
+    ProductsModule,
+    CategoriesModule,
+    PipelineModule,
+    DealsModule,
+    NotificationsModule,
+    CampaignsModule,
+    AnalyticsModule,
+    FollowUpsModule,
+    ActivityModule,
+    SearchModule,
+    AutomationsModule,
+  ],
+})
+export class AppModule {}

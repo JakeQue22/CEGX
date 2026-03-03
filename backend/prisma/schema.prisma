@@ -1,0 +1,266 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  SALES_MANAGER
+  PROCUREMENT_OFFICER
+  VIEWER
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(VIEWER)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deals            Deal[]
+  notifications    Notification[]
+  followUps        FollowUp[]
+  activityLogs     ActivityLog[]
+  emailCampaigns   EmailCampaign[]
+  dealStageHistory DealStageHistory[]
+
+  @@map("users")
+}
+
+model CompanySettings {
+  id                   String   @id @default(cuid())
+  companyName          String   @default("CEGX")
+  logoUrl              String?
+  primaryColor         String   @default("#2563EB")
+  currency             String   @default("GBP")
+  defaultVatPercent    Decimal  @default(20) @db.Decimal(5, 2)
+  defaultAdPercent     Decimal  @default(0) @db.Decimal(5, 2)
+  emailSenderName      String   @default("CEGX CRM")
+  smtpHost             String?
+  smtpPort             Int?
+  smtpUser             String?
+  smtpPass             String?
+  notifyOnDealWon      Boolean  @default(true)
+  notifyOnFollowUpDue  Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@map("company_settings")
+}
+
+model Supplier {
+  id           String   @id @default(cuid())
+  name         String
+  contactEmail String?
+  contactPhone String?
+  country      String?
+  rating       Decimal? @db.Decimal(3, 1)
+  isActive     Boolean  @default(true)
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  products  Product[]
+  deals     Deal[]
+  followUps FollowUp[]
+
+  @@map("suppliers")
+}
+
+model ProductCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+
+  @@map("product_categories")
+}
+
+model Product {
+  id            String          @id @default(cuid())
+  sku           String          @unique
+  name          String
+  description   String?
+  categoryId    String?
+  category      ProductCategory? @relation(fields: [categoryId], references: [id])
+  supplierId    String?
+  supplier      Supplier?        @relation(fields: [supplierId], references: [id])
+  baseCostPrice Decimal         @db.Decimal(12, 2)
+  vatPercent    Decimal         @default(20) @db.Decimal(5, 2)
+  adPercent     Decimal         @default(0) @db.Decimal(5, 2)
+  isArchived    Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  bulkPricings BulkPricing[]
+  deals        Deal[]
+
+  @@map("products")
+}
+
+model BulkPricing {
+  id            String   @id @default(cuid())
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  minQuantity   Int
+  bulkCostPrice Decimal  @db.Decimal(12, 2)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("bulk_pricings")
+}
+
+model PipelineStage {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  order     Int
+  isDefault Boolean  @default(false)
+  color     String   @default("#6B7280")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deals              Deal[]
+  historyFrom        DealStageHistory[] @relation("FromStage")
+  historyTo          DealStageHistory[] @relation("ToStage")
+
+  @@map("pipeline_stages")
+}
+
+model Deal {
+  id                   String        @id @default(cuid())
+  title                String
+  supplierId           String?
+  supplier             Supplier?     @relation(fields: [supplierId], references: [id])
+  productId            String?
+  product              Product?      @relation(fields: [productId], references: [id])
+  assignedUserId       String?
+  assignedUser         User?         @relation(fields: [assignedUserId], references: [id])
+  stageId              String
+  stage                PipelineStage @relation(fields: [stageId], references: [id])
+  quantity             Int           @default(1)
+  salePrice            Decimal       @db.Decimal(12, 2)
+  costPriceSnapshot    Decimal       @default(0) @db.Decimal(12, 2)
+  adPercentSnapshot    Decimal       @default(0) @db.Decimal(5, 2)
+  vatPercentSnapshot   Decimal       @default(20) @db.Decimal(5, 2)
+  revenue              Decimal       @default(0) @db.Decimal(12, 2)
+  cost                 Decimal       @default(0) @db.Decimal(12, 2)
+  adSpend              Decimal       @default(0) @db.Decimal(12, 2)
+  vat                  Decimal       @default(0) @db.Decimal(12, 2)
+  grossProfit          Decimal       @default(0) @db.Decimal(12, 2)
+  profitMarginPercent  Decimal       @default(0) @db.Decimal(7, 4)
+  status               String        @default("OPEN")
+  notes                String?
+  closedAt             DateTime?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  stageHistory DealStageHistory[]
+  followUps    FollowUp[]
+
+  @@map("deals")
+}
+
+model DealStageHistory {
+  id          String        @id @default(cuid())
+  dealId      String
+  deal        Deal          @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  fromStageId String?
+  fromStage   PipelineStage? @relation("FromStage", fields: [fromStageId], references: [id])
+  toStageId   String
+  toStage     PipelineStage  @relation("ToStage", fields: [toStageId], references: [id])
+  changedById String
+  changedBy   User           @relation(fields: [changedById], references: [id])
+  changedAt   DateTime       @default(now())
+  createdAt   DateTime       @default(now())
+
+  @@map("deal_stage_history")
+}
+
+model EmailCampaign {
+  id          String    @id @default(cuid())
+  name        String
+  subject     String
+  body        String    @db.Text
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  status      String    @default("DRAFT")
+  createdById String
+  createdBy   User      @relation(fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  recipients CampaignRecipient[]
+
+  @@map("email_campaigns")
+}
+
+model CampaignRecipient {
+  id           String        @id @default(cuid())
+  campaignId   String
+  campaign     EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  email        String
+  name         String?
+  openedAt     DateTime?
+  unsubscribed Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+
+  @@unique([campaignId, email])
+  @@map("campaign_recipients")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String
+  isRead    Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+model FollowUp {
+  id             String    @id @default(cuid())
+  dealId         String?
+  deal           Deal?     @relation(fields: [dealId], references: [id])
+  supplierId     String?
+  supplier       Supplier? @relation(fields: [supplierId], references: [id])
+  assignedUserId String
+  assignedUser   User      @relation(fields: [assignedUserId], references: [id])
+  dueAt          DateTime
+  note           String?
+  isCompleted    Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("follow_ups")
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  action     String
+  entityType String
+  entityId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@map("activity_logs")
+}
