@@ -6,6 +6,7 @@ import {
   Body,
   Query,
   UseGuards,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -75,7 +76,7 @@ export class GrokController {
   @ApiOperation({ summary: 'Get AI conversation history' })
   getConversations(
     @Query('context') context?: string,
-    @Query('limit') limit?: number,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
   ) {
     return this.grokService.getConversations(context, limit);
   }
