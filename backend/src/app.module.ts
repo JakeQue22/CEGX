@@ -19,6 +19,8 @@ import { ActivityModule } from './activity/activity.module';
 import { SearchModule } from './search/search.module';
 import { AutomationsModule } from './automations/automations.module';
 import { HealthModule } from './health/health.module';
+import { MarketingModule } from './marketing/marketing.module';
+import { GrokModule } from './grok/grok.module';
 
 @Module({
   imports: [
@@ -53,6 +55,8 @@ import { HealthModule } from './health/health.module';
     SearchModule,
     AutomationsModule,
     HealthModule,
+    MarketingModule,
+    GrokModule,
   ],
 })
 export class AppModule {}
