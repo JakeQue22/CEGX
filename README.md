@@ -299,6 +299,31 @@ Built on BullMQ with cron-based triggers:
 
 ---
 
+## 🛡️ Security Notes
+
+### Dependency Versions
+
+| Package | Version | Status |
+|---------|---------|--------|
+| `nodemailer` | `^7.0.11` | ✅ Fixed — DoS (recursive addressparser) + email routing vulns resolved |
+| `next` | `14.2.35` | ✅ Fixed — authorization bypass (CVE-2024-46982), cache poisoning, middleware bypass, server components DoS resolved |
+
+### Remaining Known Issue — Next.js HTTP Deserialization DoS
+
+**Advisory**: "Next.js HTTP request deserialization can lead to DoS when using insecure React Server Components"
+**Affects**: `>= 13.0.0, < 15.0.8`
+**Patched**: Next.js `15.0.8+`
+
+This vulnerability has **no patch available in the 14.x series**. Upgrading to Next.js 15 requires:
+- React 19 upgrade (`react`, `react-dom`)
+- Async `params` and `searchParams` in page components
+- Async `cookies()` and `headers()` calls
+- Updated `next.config.ts` format changes
+
+**Mitigation in this project**: The app uses `'use client'` directives for all interactive components and does **not** use unsafe React Server Component patterns (e.g., rendering untrusted user input in RSC). The risk is therefore significantly reduced. Upgrade to Next.js 15 when the team is ready for the migration.
+
+---
+
 ## 🔧 Development Scripts
 
 ```bash
