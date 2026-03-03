@@ -33,6 +33,7 @@ model User {
   activityLogs     ActivityLog[]
   emailCampaigns   EmailCampaign[]
   dealStageHistory DealStageHistory[]
+  marketingCampaigns MarketingCampaign[]
 
   @@map("users")
 }
@@ -263,4 +264,161 @@ model ActivityLog {
   createdAt  DateTime @default(now())
 
   @@map("activity_logs")
+}
+
+// =============================================================================
+// Marketing & LinkedIn Automation
+// =============================================================================
+
+model LinkedInAccount {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  name        String?
+  profileUrl  String?
+  sessionData Json?
+  isActive    Boolean   @default(true)
+  lastSyncAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  connections LinkedInConnection[]
+  messages    LinkedInMessage[]
+
+  @@map("linkedin_accounts")
+}
+
+model LinkedInConnection {
+  id           String            @id @default(cuid())
+  accountId    String
+  account      LinkedInAccount   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  profileUrl   String
+  name         String
+  headline     String?
+  company      String?
+  location     String?
+  status       String            @default("PENDING")
+  connectedAt  DateTime?
+  campaignId   String?
+  campaign     MarketingCampaign? @relation(fields: [campaignId], references: [id])
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  messages LinkedInMessage[]
+
+  @@unique([accountId, profileUrl])
+  @@map("linkedin_connections")
+}
+
+model LinkedInMessage {
+  id             String              @id @default(cuid())
+  accountId      String
+  account        LinkedInAccount     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  connectionId   String?
+  connection     LinkedInConnection? @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+  threadId       String?
+  direction      String
+  content        String              @db.Text
+  isRead         Boolean             @default(false)
+  isAiGenerated  Boolean             @default(false)
+  sentAt         DateTime            @default(now())
+  createdAt      DateTime            @default(now())
+
+  @@map("linkedin_messages")
+}
+
+model MarketingCampaign {
+  id              String    @id @default(cuid())
+  name            String
+  description     String?   @db.Text
+  type            String    @default("LINKEDIN")
+  status          String    @default("DRAFT")
+  targetCriteria  Json?
+  aiPrompt        String?   @db.Text
+  productIds      Json?
+  createdById     String
+  createdBy       User      @relation(fields: [createdById], references: [id])
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  connections    LinkedInConnection[]
+  leads          MarketingLead[]
+  outreachEmails OutreachEmail[]
+
+  @@map("marketing_campaigns")
+}
+
+model MarketingLead {
+  id            String             @id @default(cuid())
+  campaignId    String?
+  campaign      MarketingCampaign? @relation(fields: [campaignId], references: [id])
+  companyName   String
+  contactName   String?
+  contactEmail  String?
+  contactPhone  String?
+  website       String?
+  industry      String?
+  source        String?
+  notes         String?            @db.Text
+  status        String             @default("NEW")
+  metadata      Json?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  outreachEmails OutreachEmail[]
+
+  @@map("marketing_leads")
+}
+
+model OutreachEmail {
+  id            String             @id @default(cuid())
+  campaignId    String?
+  campaign      MarketingCampaign? @relation(fields: [campaignId], references: [id])
+  leadId        String?
+  lead          MarketingLead?     @relation(fields: [leadId], references: [id])
+  toEmail       String
+  toName        String?
+  subject       String
+  body          String             @db.Text
+  status        String             @default("DRAFT")
+  isAiGenerated Boolean            @default(false)
+  sentAt        DateTime?
+  openedAt      DateTime?
+  repliedAt     DateTime?
+  replyContent  String?            @db.Text
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@map("outreach_emails")
+}
+
+// =============================================================================
+// Grok AI Integration
+// =============================================================================
+
+model AISettings {
+  id            String   @id @default(cuid())
+  provider      String   @default("grok")
+  apiKey        String
+  model         String   @default("grok-3")
+  isActive      Boolean  @default(true)
+  defaultPrompt String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("ai_settings")
+}
+
+model AIConversation {
+  id         String   @id @default(cuid())
+  context    String
+  entityType String?
+  entityId   String?
+  prompt     String   @db.Text
+  response   String   @db.Text
+  tokensUsed Int?
+  createdAt  DateTime @default(now())
+
+  @@map("ai_conversations")
 }

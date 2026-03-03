@@ -206,13 +206,14 @@ export class GrokService {
   }
 
   async getConversations(context?: string, limit: number = 50) {
-    const where: any = {};
+    const cappedLimit = Math.min(Math.max(limit, 1), 1000);
+    const where: Record<string, string> = {};
     if (context) where.context = context;
 
     return this.prisma.aIConversation.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      take: limit,
+      take: cappedLimit,
     });
   }
 }
