@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { SettingsModule } from './settings/settings.module';
 import { SuppliersModule } from './suppliers/suppliers.module';
+import { CustomersModule } from './customers/customers.module';
 import { ProductsModule } from './products/products.module';
 import { CategoriesModule } from './categories/categories.module';
 import { PipelineModule } from './pipeline/pipeline.module';
@@ -46,6 +47,7 @@ import { GrokModule } from './grok/grok.module';
     UsersModule,
     SettingsModule,
     SuppliersModule,
+    CustomersModule,
     ProductsModule,
     CategoriesModule,
     PipelineModule,
