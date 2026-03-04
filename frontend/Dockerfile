@@ -15,6 +15,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED 1
+# Bake the Docker-internal backend URL into Next.js rewrites at build time
+ENV INTERNAL_API_URL=http://backend:3003/api
 
 RUN npm run build
 
