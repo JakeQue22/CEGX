@@ -27,7 +27,10 @@ export class AnalyticsService {
         _sum: { revenue: true },
       }),
       this.prisma.deal.findMany({
-        where: { status: 'WON', closedAt: { not: null } },
+        where: {
+          status: 'WON',
+          closedAt: { gte: new Date(now.getFullYear() - 1, now.getMonth(), 1) },
+        },
         select: { revenue: true, grossProfit: true, closedAt: true },
         orderBy: { closedAt: 'asc' },
       }),
