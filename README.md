@@ -156,11 +156,11 @@ docker-compose up -d
 ```
 
 Services:
-- **Backend API**: http://localhost:3000/api
-- **Swagger Docs**: http://localhost:3000/api/docs
-- **Frontend**: http://localhost:4000
-- **PostgreSQL**: localhost:5432
-- **Redis**: localhost:6379
+- **Backend API**: http://localhost:3003/api
+- **Swagger Docs**: http://localhost:3003/api/docs
+- **Frontend**: http://localhost:3002
+- **PostgreSQL**: localhost:5433
+- **Redis**: localhost:6380
 
 ### 3. Local Development
 
@@ -202,21 +202,21 @@ npm run dev
 
 ### Backend (`backend/.env`)
 ```env
-DATABASE_URL=postgresql://user:pass@localhost:5432/cegx
-REDIS_URL=redis://localhost:6379
+DATABASE_URL=postgresql://user:pass@localhost:5433/cegx
+REDIS_URL=redis://localhost:6380
 JWT_SECRET=<min-32-char-secret>
 JWT_REFRESH_SECRET=<min-32-char-secret>
 JWT_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
-PORT=3000
+PORT=3003
 NODE_ENV=development
-FRONTEND_URL=http://localhost:4000
-APP_URL=http://localhost:3000
+FRONTEND_URL=http://localhost:3002
+APP_URL=http://localhost:3003
 ```
 
 ### Frontend (`frontend/.env.local`)
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:3000/api
+NEXT_PUBLIC_API_URL=http://localhost:3003/api
 ```
 
 ---
