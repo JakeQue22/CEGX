@@ -191,7 +191,7 @@ npm run dev
 | Field | Value |
 |-------|-------|
 | Email | `admin@cegx.co.uk` |
-| Password | `Admin123!` |
+| Password | `Admin@123456` |
 | Role | `ADMIN` |
 
 > ⚠️ **Change the default password immediately in production.**
