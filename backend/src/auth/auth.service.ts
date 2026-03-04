@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -34,7 +34,11 @@ export class AuthService {
 
   async login(dto: LoginDto) {
     const user = await this.validateUser(dto.email, dto.password);
-    return this.generateTokens(user);
+    const tokens = this.generateTokens(user);
+    return {
+      ...tokens,
+      user: { id: user.id, email: user.email, name: user.name, role: user.role, isActive: user.isActive, createdAt: user.createdAt },
+    };
   }
 
   async register(dto: RegisterDto) {
@@ -49,11 +53,15 @@ export class AuthService {
         email: dto.email,
         password: hashed,
         name: dto.name,
-        role: dto.role ?? Role.VIEWER,
+        role: Role.VIEWER,
       },
     });
 
-    return this.generateTokens(user);
+    const tokens = this.generateTokens(user);
+    return {
+      ...tokens,
+      user: { id: user.id, email: user.email, name: user.name, role: user.role, isActive: user.isActive, createdAt: user.createdAt },
+    };
   }
 
   async refresh(userId: string) {

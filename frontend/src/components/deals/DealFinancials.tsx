@@ -10,11 +10,10 @@ interface DealFinancialsProps {
 export function DealFinancials({ deal }: DealFinancialsProps) {
   const cards = [
     { label: 'Revenue', value: deal.revenue ?? deal.salePrice, color: 'bg-blue-50 border-blue-200 text-blue-700' },
-    { label: 'Cost', value: deal.cost ?? deal.costPrice * deal.quantity, color: 'bg-gray-50 border-gray-200 text-gray-700' },
-    { label: 'Ad Spend', value: deal.adSpend, color: 'bg-orange-50 border-orange-200 text-orange-700' },
-    { label: 'VAT', value: deal.vatAmount ?? 0, color: 'bg-purple-50 border-purple-200 text-purple-700' },
-    { label: 'Gross Profit', value: deal.grossProfit, color: 'bg-green-50 border-green-200 text-green-700' },
-    { label: 'Net Profit', value: deal.netProfit ?? deal.grossProfit, color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
+    { label: 'Cost', value: deal.cost ?? 0, color: 'bg-gray-50 border-gray-200 text-gray-700' },
+    { label: 'Ad Spend', value: deal.adSpend ?? 0, color: 'bg-orange-50 border-orange-200 text-orange-700' },
+    { label: 'VAT', value: deal.vat ?? 0, color: 'bg-purple-50 border-purple-200 text-purple-700' },
+    { label: 'Gross Profit', value: deal.grossProfit ?? 0, color: 'bg-green-50 border-green-200 text-green-700' },
   ];
 
   return (
@@ -32,13 +31,13 @@ export function DealFinancials({ deal }: DealFinancialsProps) {
         <span className="text-sm text-gray-600">Margin:</span>
         <span
           className={`text-sm font-bold ${
-            deal.marginPercent >= 20 ? 'text-green-600' : deal.marginPercent >= 10 ? 'text-yellow-600' : 'text-red-600'
+            deal.profitMarginPercent >= 20 ? 'text-green-600' : deal.profitMarginPercent >= 10 ? 'text-yellow-600' : 'text-red-600'
           }`}
         >
-          {deal.marginPercent?.toFixed(2)}%
+          {deal.profitMarginPercent?.toFixed(2)}%
         </span>
         <span className="text-gray-400 text-xs ml-auto">
-          VAT Rate: {deal.vatPercent}% | Ad: {deal.adPercent}%
+          VAT Rate: {deal.vatPercentSnapshot}% | Ad: {deal.adPercentSnapshot}%
         </span>
       </div>
     </div>

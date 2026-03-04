@@ -47,8 +47,8 @@ export class EmailService {
       const transporter = await this.getTransporter();
       const settings = await this.prisma.companySettings.findFirst();
 
-      const from = settings?.emailSenderName && settings?.smtpUser
-        ? `"${settings.emailSenderName}" <${settings.smtpUser}>`
+      const from = settings?.smtpSenderName && settings?.smtpUser
+        ? `"${settings.smtpSenderName}" <${settings.smtpUser}>`
         : settings?.smtpUser ?? process.env.SMTP_USER ?? '';
 
       await transporter.sendMail({
@@ -67,7 +67,7 @@ export class EmailService {
   }
 
   buildTrackingPixelHtml(campaignId: string, recipientEmail: string): string {
-    const baseUrl = process.env.APP_URL ?? 'http://localhost:3000';
+    const baseUrl = process.env.APP_URL ?? 'http://localhost:3003';
     const encoded = Buffer.from(`${campaignId}:${recipientEmail}`).toString('base64');
     return `<img src="${baseUrl}/api/campaigns/track-open/${encoded}" width="1" height="1" style="display:none" alt="" />`;
   }

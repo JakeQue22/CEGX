@@ -21,7 +21,7 @@ function groupFollowUps(followUps: FollowUp[]) {
   const upcoming: FollowUp[] = [];
 
   followUps.forEach((fu) => {
-    const due = new Date(fu.dueDate);
+    const due = new Date(fu.dueAt);
     if (due < todayStart) overdue.push(fu);
     else if (due < todayEnd) today.push(fu);
     else upcoming.push(fu);
@@ -44,16 +44,15 @@ function FollowUpGroup({ title, items, onComplete, color }: {
         {items.map((fu) => (
           <li key={fu.id} className="bg-white rounded-xl border border-gray-200 px-5 py-4 flex items-start justify-between gap-4 shadow-sm">
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900">{fu.title}</p>
-              {fu.description && <p className="text-xs text-gray-500 mt-0.5">{fu.description}</p>}
+              <p className="text-sm font-medium text-gray-900">{fu.note ?? 'Follow-up'}</p>
               <div className="flex items-center gap-3 mt-1.5">
-                <span className={`text-xs font-medium ${color}`}>{formatDate(fu.dueDate)}</span>
+                <span className={`text-xs font-medium ${color}`}>{formatDate(fu.dueAt)}</span>
                 {fu.deal && (
                   <Link href={`/deals/${fu.deal.id}`} className="text-xs text-blue-600 hover:underline">
                     {fu.deal.title}
                   </Link>
                 )}
-                {fu.assignedTo && <span className="text-xs text-gray-400">→ {fu.assignedTo.name}</span>}
+                {fu.assignedUser && <span className="text-xs text-gray-400">→ {fu.assignedUser.name}</span>}
               </div>
             </div>
             <Button variant="secondary" size="sm" onClick={() => onComplete(fu.id)}>

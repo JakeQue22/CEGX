@@ -47,7 +47,7 @@ export class UpdateSettingsDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  emailSenderName?: string;
+  smtpSenderName?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -72,7 +72,17 @@ export class UpdateSettingsDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()
+  notifyOnDealCreated?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
   notifyOnDealWon?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  notifyOnDealLost?: boolean;
 
   @ApiPropertyOptional()
   @IsOptional()

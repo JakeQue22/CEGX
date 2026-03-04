@@ -6,38 +6,95 @@ export class AnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getDashboard() {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
     const [
-      totalDeals,
+      openDealsCount,
+      monthlyAgg,
+      dealsByStageRaw,
       wonDeals,
-      lostDeals,
-      openDeals,
-      totalRevenue,
-      totalGrossProfit,
-      pendingFollowUps,
-      activeCampaigns,
+      upcomingFollowUpsRaw,
     ] = await Promise.all([
-      this.prisma.deal.count(),
-      this.prisma.deal.count({ where: { status: 'WON' } }),
-      this.prisma.deal.count({ where: { status: 'LOST' } }),
       this.prisma.deal.count({ where: { status: 'OPEN' } }),
-      this.prisma.deal.aggregate({ where: { status: 'WON' }, _sum: { revenue: true } }),
-      this.prisma.deal.aggregate({ where: { status: 'WON' }, _sum: { grossProfit: true } }),
-      this.prisma.followUp.count({ where: { isCompleted: false } }),
-      this.prisma.emailCampaign.count({ where: { status: { in: ['DRAFT', 'SCHEDULED'] } } }),
+      this.prisma.deal.aggregate({
+        where: { status: 'WON', closedAt: { gte: startOfMonth } },
+        _sum: { revenue: true, grossProfit: true, vat: true },
+      }),
+      this.prisma.deal.groupBy({
+        by: ['stageId'],
+        _count: { id: true },
+        _sum: { revenue: true },
+      }),
+      this.prisma.deal.findMany({
+        where: {
+          status: 'WON',
+          closedAt: { gte: new Date(now.getFullYear() - 1, now.getMonth(), 1) },
+        },
+        select: { revenue: true, grossProfit: true, closedAt: true },
+        orderBy: { closedAt: 'asc' },
+      }),
+      this.prisma.followUp.findMany({
+        where: { isCompleted: false },
+        orderBy: { dueAt: 'asc' },
+        take: 10,
+        include: {
+          deal: { select: { id: true, title: true } },
+        },
+      }),
     ]);
 
-    const winRate = totalDeals > 0 ? ((wonDeals / totalDeals) * 100).toFixed(2) : '0.00';
+    // Resolve stage names for dealsByStage
+    const stageIds = dealsByStageRaw.map((g) => g.stageId);
+    const stages = stageIds.length > 0
+      ? await this.prisma.pipelineStage.findMany({
+          where: { id: { in: stageIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const stageMap = new Map(stages.map((s) => [s.id, s.name]));
+
+    const dealsByStage = dealsByStageRaw.map((g) => ({
+      stage: stageMap.get(g.stageId) ?? 'Unknown',
+      count: g._count.id,
+      value: Number(g._sum.revenue ?? 0),
+    }));
+
+    // Build profitOverTime from recent won deals
+    const monthlyMap = new Map<string, { revenue: number; profit: number }>();
+    for (const d of wonDeals) {
+      if (!d.closedAt) continue;
+      const month = d.closedAt.toISOString().slice(0, 7);
+      const entry = monthlyMap.get(month) ?? { revenue: 0, profit: 0 };
+      entry.revenue += Number(d.revenue);
+      entry.profit += Number(d.grossProfit);
+      monthlyMap.set(month, entry);
+    }
+    const profitOverTime = Array.from(monthlyMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-12)
+      .map(([month, data]) => ({ month, ...data }));
+
+    // Map follow-ups to the shape the frontend expects
+    const upcomingFollowUps = upcomingFollowUpsRaw.map((fu) => ({
+      id: fu.id,
+      dealId: fu.dealId,
+      deal: fu.deal,
+      title: fu.note ?? 'Follow-up',
+      dueDate: fu.dueAt.toISOString(),
+      isCompleted: fu.isCompleted,
+      createdAt: fu.createdAt.toISOString(),
+      updatedAt: fu.updatedAt.toISOString(),
+    }));
 
     return {
-      totalDeals,
-      wonDeals,
-      lostDeals,
-      openDeals,
-      winRate: parseFloat(winRate),
-      totalRevenue: Number(totalRevenue._sum.revenue ?? 0),
-      totalGrossProfit: Number(totalGrossProfit._sum.grossProfit ?? 0),
-      pendingFollowUps,
-      activeCampaigns,
+      monthlyRevenue: Number(monthlyAgg._sum.revenue ?? 0),
+      monthlyProfit: Number(monthlyAgg._sum.grossProfit ?? 0),
+      openDealsCount,
+      vatCollected: Number(monthlyAgg._sum.vat ?? 0),
+      dealsByStage,
+      profitOverTime,
+      upcomingFollowUps,
     };
   }
 
@@ -231,6 +288,189 @@ export class AnalyticsService {
         unsubscribeRate: total > 0 ? parseFloat(((unsubscribed / total) * 100).toFixed(2)) : 0,
       };
     });
+  }
+
+  async getProcurementIntelligence() {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+
+    const [
+      totalSuppliers,
+      activeSuppliers,
+      totalProducts,
+      totalCategories,
+      totalLeads,
+      leadsByStatus,
+      recentDeals,
+      topSuppliers,
+      categoryDemand,
+      campaignStats,
+      recentLeads,
+      outreachStats,
+    ] = await Promise.all([
+      // Supplier counts
+      this.prisma.supplier.count(),
+      this.prisma.supplier.count({ where: { isActive: true } }),
+      // Product & category counts
+      this.prisma.product.count({ where: { isArchived: false } }),
+      this.prisma.productCategory.count(),
+      // Lead counts
+      this.prisma.marketingLead.count(),
+      this.prisma.marketingLead.groupBy({ by: ['status'], _count: true }),
+      // Recent deals for pipeline velocity
+      this.prisma.deal.findMany({
+        where: { createdAt: { gte: ninetyDaysAgo } },
+        select: { status: true, revenue: true, grossProfit: true, closedAt: true, createdAt: true },
+      }),
+      // Top suppliers by deal value
+      this.prisma.supplier.findMany({
+        where: { deals: { some: {} } },
+        include: {
+          deals: {
+            select: { status: true, revenue: true, grossProfit: true, profitMarginPercent: true },
+          },
+          _count: { select: { products: true } },
+        },
+        take: 10,
+      }),
+      // Category demand (products per category with deal count)
+      this.prisma.productCategory.findMany({
+        include: {
+          products: {
+            include: {
+              _count: { select: { deals: true } },
+              deals: {
+                where: { status: 'WON' },
+                select: { revenue: true },
+              },
+            },
+          },
+        },
+      }),
+      // Campaign performance
+      this.prisma.marketingCampaign.findMany({
+        include: {
+          _count: { select: { leads: true, connections: true, outreachEmails: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+      // Recent leads
+      this.prisma.marketingLead.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        include: { campaign: { select: { id: true, name: true } } },
+      }),
+      // Outreach email stats
+      this.prisma.outreachEmail.groupBy({ by: ['status'], _count: true }),
+    ]);
+
+    // Lead funnel data
+    const leadFunnel = leadsByStatus.map((l) => ({
+      status: l.status,
+      count: l._count,
+    }));
+
+    // Pipeline velocity (last 90 days)
+    const wonDeals = recentDeals.filter((d) => d.status === 'WON');
+    const lostDeals = recentDeals.filter((d) => d.status === 'LOST');
+    const openDeals = recentDeals.filter((d) => d.status === 'OPEN');
+    const winRate = wonDeals.length + lostDeals.length > 0
+      ? parseFloat(((wonDeals.length / (wonDeals.length + lostDeals.length)) * 100).toFixed(1))
+      : 0;
+    const avgDealSize = wonDeals.length > 0
+      ? parseFloat((wonDeals.reduce((a, d) => a + Number(d.revenue), 0) / wonDeals.length).toFixed(2))
+      : 0;
+    const pipelineValue = openDeals.reduce((a, d) => a + Number(d.revenue), 0);
+
+    // Top suppliers enriched
+    const topSuppliersData = topSuppliers
+      .map((s) => {
+        const won = s.deals.filter((d) => d.status === 'WON');
+        const totalRevenue = won.reduce((a, d) => a + Number(d.revenue), 0);
+        const totalProfit = won.reduce((a, d) => a + Number(d.grossProfit), 0);
+        const avgMargin = won.length > 0
+          ? won.reduce((a, d) => a + Number(d.profitMarginPercent), 0) / won.length
+          : 0;
+        return {
+          id: s.id,
+          name: s.name,
+          totalDeals: s.deals.length,
+          wonDeals: won.length,
+          openDeals: s.deals.filter((d) => d.status === 'OPEN').length,
+          productCount: s._count.products,
+          totalRevenue,
+          totalProfit,
+          avgMargin: parseFloat(avgMargin.toFixed(1)),
+        };
+      })
+      .sort((a, b) => b.totalRevenue - a.totalRevenue);
+
+    // Category demand analysis
+    const categoryDemandData = categoryDemand.map((cat) => {
+      const totalDealCount = cat.products.reduce((a, p) => a + p._count.deals, 0);
+      const totalRevenue = cat.products.reduce(
+        (a, p) => a + p.deals.reduce((s, d) => s + Number(d.revenue), 0),
+        0,
+      );
+      return {
+        id: cat.id,
+        name: cat.name,
+        productCount: cat.products.length,
+        totalDealCount,
+        wonRevenue: totalRevenue,
+      };
+    }).sort((a, b) => b.wonRevenue - a.wonRevenue);
+
+    // Outreach performance
+    const outreachPerf = outreachStats.reduce(
+      (acc, s) => {
+        acc[s.status] = s._count;
+        acc.total += s._count;
+        return acc;
+      },
+      { total: 0 } as Record<string, number>,
+    );
+
+    return {
+      overview: {
+        totalSuppliers,
+        activeSuppliers,
+        totalProducts,
+        totalCategories,
+        totalLeads,
+        pipelineValue,
+        winRate,
+        avgDealSize,
+      },
+      leadFunnel,
+      topSuppliers: topSuppliersData,
+      categoryDemand: categoryDemandData,
+      campaignPerformance: campaignStats.map((c) => ({
+        id: c.id,
+        name: c.name,
+        type: c.type,
+        status: c.status,
+        leadsGenerated: c._count.leads,
+        connections: c._count.connections,
+        emailsSent: c._count.outreachEmails,
+        startedAt: c.startedAt,
+        createdAt: c.createdAt,
+      })),
+      recentLeads: recentLeads.map((l) => ({
+        id: l.id,
+        companyName: l.companyName,
+        contactName: l.contactName,
+        contactEmail: l.contactEmail,
+        industry: l.industry,
+        source: l.source,
+        status: l.status,
+        campaignName: l.campaign?.name ?? null,
+        createdAt: l.createdAt,
+      })),
+      outreachPerformance: outreachPerf,
+    };
   }
 
   async getVatLiability(from?: string, to?: string) {

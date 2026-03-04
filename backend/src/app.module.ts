@@ -19,6 +19,8 @@ import { ActivityModule } from './activity/activity.module';
 import { SearchModule } from './search/search.module';
 import { AutomationsModule } from './automations/automations.module';
 import { HealthModule } from './health/health.module';
+import { MarketingModule } from './marketing/marketing.module';
+import { GrokModule } from './grok/grok.module';
 
 @Module({
   imports: [
@@ -32,7 +34,10 @@ import { HealthModule } from './health/health.module';
     BullModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        redis: configService.get<string>('REDIS_URL', 'redis://localhost:6379'),
+        redis: {
+          host: configService.get<string>('REDIS_HOST', 'localhost'),
+          port: configService.get<number>('REDIS_PORT', 6380),
+        },
       }),
       inject: [ConfigService],
     }),
@@ -53,6 +58,8 @@ import { HealthModule } from './health/health.module';
     SearchModule,
     AutomationsModule,
     HealthModule,
+    MarketingModule,
+    GrokModule,
   ],
 })
 export class AppModule {}

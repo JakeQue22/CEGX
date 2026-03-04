@@ -13,7 +13,7 @@ export default function PipelinePage() {
 
   const { data: stages = [], isLoading: loadingStages } = useQuery<PipelineStage[]>({
     queryKey: ['pipeline-stages'],
-    queryFn: () => axiosInstance.get('/pipeline-stages').then((r) => r.data),
+    queryFn: () => axiosInstance.get('/pipeline').then((r) => r.data),
   });
 
   const { data: deals = [], isLoading: loadingDeals } = useQuery<Deal[]>({

@@ -4,10 +4,18 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '@/lib/axios';
 import { Notification } from '@/types';
 
+interface PaginatedNotifications {
+  items: Notification[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export function useNotifications() {
   const queryClient = useQueryClient();
 
-  const { data: notifications = [], isLoading } = useQuery<Notification[]>({
+  const { data, isLoading } = useQuery<PaginatedNotifications>({
     queryKey: ['notifications'],
     queryFn: async () => {
       const { data } = await axiosInstance.get('/notifications');
@@ -15,6 +23,8 @@ export function useNotifications() {
     },
     refetchInterval: 30_000, // poll every 30s
   });
+
+  const notifications: Notification[] = Array.isArray(data) ? data : (data?.items ?? []);
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 

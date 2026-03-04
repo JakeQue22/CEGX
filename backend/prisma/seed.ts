@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -34,32 +34,33 @@ async function main() {
         currency: 'GBP',
         defaultVatPercent: 20,
         defaultAdPercent: 0,
-        emailSenderName: 'CEGX CRM',
+        smtpSenderName: 'CEGX CRM',
+        notifyOnDealCreated: true,
         notifyOnDealWon: true,
+        notifyOnDealLost: true,
         notifyOnFollowUpDue: true,
       },
     });
     console.log('✅ Company settings seeded');
   }
 
-  // Seed admin user
+  // Seed admin user (upsert so password is always reset to the known default)
   const adminEmail = process.env.ADMIN_EMAIL ?? 'admin@cegx.co.uk';
   const adminPassword = process.env.ADMIN_PASSWORD ?? 'Admin@123456';
+  const hashedPassword = await bcrypt.hash(adminPassword, 12);
 
-  const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
-  if (!existingAdmin) {
-    const hashed = await bcrypt.hash(adminPassword, 12);
-    await prisma.user.create({
-      data: {
-        email: adminEmail,
-        password: hashed,
-        name: 'System Admin',
-        role: 'ADMIN',
-        isActive: true,
-      },
-    });
-    console.log(`✅ Admin user created: ${adminEmail}`);
-  }
+  await prisma.user.upsert({
+    where: { email: adminEmail },
+    update: { password: hashedPassword },
+    create: {
+      email: adminEmail,
+      password: hashedPassword,
+      name: 'System Admin',
+      role: 'ADMIN',
+      isActive: true,
+    },
+  });
+  console.log(`✅ Admin user seeded: ${adminEmail}`);
 
   // Seed sample product categories
   const categories = ['Electronics', 'Industrial', 'Office Supplies', 'Software', 'Services'];

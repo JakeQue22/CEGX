@@ -51,12 +51,13 @@ export interface CompanySettings {
 export interface Supplier {
   id: string;
   name: string;
-  contactName?: string;
-  email?: string;
-  phone?: string;
+  contactEmail?: string;
+  contactPhone?: string;
   country?: string;
   rating?: number;
+  isActive?: boolean;
   notes?: string;
+  _count?: { products: number; deals: number };
   createdAt: string;
   updatedAt: string;
 }
@@ -73,8 +74,7 @@ export interface BulkPricing {
   id: string;
   productId: string;
   minQuantity: number;
-  maxQuantity?: number;
-  unitCost: number;
+  bulkCostPrice: number;
 }
 
 export interface Product {
@@ -82,12 +82,14 @@ export interface Product {
   name: string;
   sku: string;
   description?: string;
-  baseCost: number;
+  baseCostPrice: number;
+  vatPercent?: number;
+  adPercent?: number;
   categoryId?: string;
   category?: ProductCategory;
   supplierId?: string;
   supplier?: Supplier;
-  bulkPricing?: BulkPricing[];
+  bulkPricings?: BulkPricing[];
   isArchived: boolean;
   createdAt: string;
   updatedAt: string;
@@ -112,22 +114,20 @@ export interface Deal {
   supplier?: Supplier;
   productId?: string;
   product?: Product;
+  assignedUserId?: string;
+  assignedUser?: User;
   quantity: number;
-  costPrice: number;
   salePrice: number;
-  adSpend: number;
-  vatPercent: number;
-  adPercent: number;
+  costPriceSnapshot: number;
+  adPercentSnapshot: number;
+  vatPercentSnapshot: number;
   revenue: number;
   cost: number;
+  adSpend: number;
+  vat: number;
   grossProfit: number;
-  netProfit: number;
-  vatAmount: number;
-  marginPercent: number;
+  profitMarginPercent: number;
   notes?: string;
-  assignedToId?: string;
-  assignedTo?: User;
-  expectedCloseDate?: string;
   closedAt?: string;
   stageHistory?: DealStageHistory[];
   followUps?: FollowUp[];
@@ -189,15 +189,15 @@ export interface Notification {
 
 export interface FollowUp {
   id: string;
-  dealId: string;
-  deal?: Deal;
-  title: string;
-  description?: string;
-  dueDate: string;
+  dealId?: string;
+  deal?: { id: string; title: string };
+  supplierId?: string;
+  supplier?: { id: string; name: string };
+  note?: string;
+  dueAt: string;
   isCompleted: boolean;
-  completedAt?: string;
-  assignedToId?: string;
-  assignedTo?: User;
+  assignedUserId?: string;
+  assignedUser?: { id: string; name: string };
   createdAt: string;
   updatedAt: string;
 }
@@ -232,4 +232,216 @@ export interface DashboardAnalytics {
   dealsByStage: { stage: string; count: number; value: number }[];
   profitOverTime: { month: string; profit: number; revenue: number }[];
   upcomingFollowUps: FollowUp[];
+}
+
+// ─── Marketing & LinkedIn ─────────────────────────────────────────────────────
+
+export type MarketingCampaignType = 'LINKEDIN' | 'EMAIL' | 'COMBINED';
+export type MarketingCampaignStatus = 'DRAFT' | 'ACTIVE' | 'PAUSED' | 'COMPLETED';
+export type LinkedInConnectionStatus = 'PENDING' | 'CONNECTED' | 'DECLINED';
+export type LeadStatus = 'NEW' | 'CONTACTED' | 'RESPONDED' | 'QUALIFIED' | 'CONVERTED';
+export type OutreachEmailStatus = 'DRAFT' | 'QUEUED' | 'SENT' | 'DELIVERED' | 'OPENED' | 'REPLIED' | 'BOUNCED';
+
+export interface LinkedInAccount {
+  id: string;
+  email: string;
+  name?: string;
+  profileUrl?: string;
+  isActive: boolean;
+  lastSyncAt?: string;
+  _count?: { connections: number; messages: number };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LinkedInConnection {
+  id: string;
+  accountId: string;
+  account?: { id: string; email: string; name?: string };
+  profileUrl: string;
+  name: string;
+  headline?: string;
+  company?: string;
+  location?: string;
+  status: LinkedInConnectionStatus;
+  connectedAt?: string;
+  campaignId?: string;
+  campaign?: { id: string; name: string };
+  messages?: LinkedInMessage[];
+  _count?: { messages: number };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LinkedInMessage {
+  id: string;
+  accountId: string;
+  connectionId?: string;
+  threadId?: string;
+  direction: 'INBOUND' | 'OUTBOUND';
+  content: string;
+  isRead: boolean;
+  isAiGenerated: boolean;
+  sentAt: string;
+  createdAt: string;
+}
+
+export interface MarketingCampaign {
+  id: string;
+  name: string;
+  description?: string;
+  type: MarketingCampaignType;
+  status: MarketingCampaignStatus;
+  targetCriteria?: {
+    keywords?: string;
+    industry?: string;
+    location?: string;
+    companySize?: string;
+    jobTitle?: string;
+  };
+  aiPrompt?: string;
+  productIds?: string[];
+  createdById: string;
+  createdBy?: { id: string; name: string; email: string };
+  startedAt?: string;
+  completedAt?: string;
+  _count?: { connections: number; leads: number; outreachEmails: number };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MarketingLead {
+  id: string;
+  campaignId?: string;
+  campaign?: { id: string; name: string };
+  companyName: string;
+  contactName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  website?: string;
+  industry?: string;
+  source?: string;
+  notes?: string;
+  status: LeadStatus;
+  _count?: { outreachEmails: number };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OutreachEmail {
+  id: string;
+  campaignId?: string;
+  campaign?: { id: string; name: string };
+  leadId?: string;
+  lead?: { id: string; companyName: string; contactName?: string };
+  toEmail: string;
+  toName?: string;
+  subject: string;
+  body: string;
+  status: OutreachEmailStatus;
+  isAiGenerated: boolean;
+  sentAt?: string;
+  openedAt?: string;
+  repliedAt?: string;
+  replyContent?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─── Grok AI ──────────────────────────────────────────────────────────────────
+
+export interface AISettings {
+  id: string;
+  provider: string;
+  apiKey: string;
+  model: string;
+  isActive: boolean;
+  defaultPrompt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AIConversation {
+  id: string;
+  context: string;
+  entityType?: string;
+  entityId?: string;
+  prompt: string;
+  response: string;
+  tokensUsed?: number;
+  createdAt: string;
+}
+
+export interface MarketingStats {
+  total: number;
+  active: number;
+  totalLeads: number;
+  emailsSent: number;
+  byStatus: { status: string; _count: number }[];
+}
+
+// ─── Procurement Intelligence ─────────────────────────────────────────────────
+
+export interface ProcurementIntelligence {
+  overview: {
+    totalSuppliers: number;
+    activeSuppliers: number;
+    totalProducts: number;
+    totalCategories: number;
+    totalLeads: number;
+    pipelineValue: number;
+    winRate: number;
+    avgDealSize: number;
+  };
+  leadFunnel: { status: string; count: number }[];
+  topSuppliers: {
+    id: string;
+    name: string;
+    totalDeals: number;
+    wonDeals: number;
+    openDeals: number;
+    productCount: number;
+    totalRevenue: number;
+    totalProfit: number;
+    avgMargin: number;
+  }[];
+  categoryDemand: {
+    id: string;
+    name: string;
+    productCount: number;
+    totalDealCount: number;
+    wonRevenue: number;
+  }[];
+  campaignPerformance: {
+    id: string;
+    name: string;
+    type: string;
+    status: string;
+    leadsGenerated: number;
+    connections: number;
+    emailsSent: number;
+    startedAt: string | null;
+    createdAt: string;
+  }[];
+  recentLeads: {
+    id: string;
+    companyName: string;
+    contactName: string | null;
+    contactEmail: string | null;
+    industry: string | null;
+    source: string | null;
+    status: string;
+    campaignName: string | null;
+    createdAt: string;
+  }[];
+  outreachPerformance: Record<string, number>;
+}
+
+export interface SupplierMarginData {
+  supplierId: string;
+  supplierName: string;
+  wonDeals: number;
+  totalRevenue: number;
+  totalGrossProfit: number;
+  avgProfitMarginPercent: number;
 }

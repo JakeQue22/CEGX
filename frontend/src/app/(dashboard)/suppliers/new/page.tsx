@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button';
 export default function NewSupplierPage() {
   const router = useRouter();
   const [form, setForm] = useState({
-    name: '', contactName: '', email: '', phone: '', country: '', rating: '', notes: '',
+    name: '', email: '', phone: '', country: '', rating: '', notes: '',
   });
   const [error, setError] = useState('');
 
@@ -32,9 +32,8 @@ export default function NewSupplierPage() {
     if (!form.name) { setError('Name is required.'); return; }
     create.mutate({
       name: form.name,
-      contactName: form.contactName || undefined,
-      email: form.email || undefined,
-      phone: form.phone || undefined,
+      contactEmail: form.email || undefined,
+      contactPhone: form.phone || undefined,
       country: form.country || undefined,
       rating: form.rating ? Number(form.rating) : undefined,
       notes: form.notes || undefined,
@@ -51,9 +50,8 @@ export default function NewSupplierPage() {
       <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-4">
         {error && <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">{error}</div>}
         <Input label="Company Name *" value={form.name} onChange={set('name')} required placeholder="Acme Ltd" />
-        <Input label="Contact Name" value={form.contactName} onChange={set('contactName')} placeholder="Jane Smith" />
-        <Input label="Email" type="email" value={form.email} onChange={set('email')} placeholder="contact@acme.com" />
-        <Input label="Phone" type="tel" value={form.phone} onChange={set('phone')} placeholder="+44 20 1234 5678" />
+        <Input label="Contact Email" type="email" value={form.email} onChange={set('email')} placeholder="contact@acme.com" />
+        <Input label="Contact Phone" type="tel" value={form.phone} onChange={set('phone')} placeholder="+44 20 1234 5678" />
         <Input label="Country" value={form.country} onChange={set('country')} placeholder="United Kingdom" />
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">Rating (1-5)</label>

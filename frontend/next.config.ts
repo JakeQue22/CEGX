@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   reactStrictMode: true,
   images: {
     remotePatterns: [
@@ -15,10 +16,16 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
+    // INTERNAL_API_URL is the Docker-internal address used by the Next.js
+    // server for proxying; NEXT_PUBLIC_API_URL is the browser-facing URL.
+    const dest =
+      process.env.INTERNAL_API_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      'http://localhost:3003/api';
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'}/:path*`,
+        destination: `${dest}/:path*`,
       },
     ];
   },
