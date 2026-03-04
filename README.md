@@ -162,13 +162,21 @@ Services:
 - **PostgreSQL**: localhost:5433
 - **Redis**: localhost:6380
 
+> **Rebuild from scratch** (if login issues persist):
+> ```bash
+> docker-compose down -v          # remove containers AND volumes
+> docker-compose build --no-cache # rebuild images
+> docker-compose up -d            # start fresh
+> ```
+
 ### 3. Local Development
 
 **Backend:**
 ```bash
 cd backend
 cp .env.example .env
-# Set DATABASE_URL, REDIS_URL, JWT_SECRET, JWT_REFRESH_SECRET
+# Set DATABASE_URL, REDIS_HOST, REDIS_PORT, JWT_SECRET, JWT_REFRESH_SECRET
+# Optionally set ADMIN_EMAIL and ADMIN_PASSWORD to override seed defaults
 
 npm install
 npx prisma migrate dev --name init
@@ -212,7 +220,8 @@ docker exec -it cegx_backend node prisma/reset-password.js admin@cegx.co.uk NewP
 ### Backend (`backend/.env`)
 ```env
 DATABASE_URL=postgresql://user:pass@localhost:5433/cegx
-REDIS_URL=redis://localhost:6380
+REDIS_HOST=localhost
+REDIS_PORT=6380
 JWT_SECRET=<min-32-char-secret>
 JWT_REFRESH_SECRET=<min-32-char-secret>
 JWT_EXPIRES_IN=15m

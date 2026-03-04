@@ -1,10 +1,16 @@
 version: '3.9'
 
+networks:
+  cegx_net:
+    driver: bridge
+
 services:
   cegx_db:
     image: postgres:16-alpine
     container_name: cegx_db
     restart: always
+    networks:
+      - cegx_net
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-cegx}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cegxpass}
@@ -23,6 +29,8 @@ services:
     image: redis:7-alpine
     container_name: cegx_redis
     restart: always
+    networks:
+      - cegx_net
     ports:
       - '6380:6379'
     volumes:
@@ -39,6 +47,8 @@ services:
       dockerfile: Dockerfile
     container_name: cegx_backend
     restart: always
+    networks:
+      - cegx_net
     depends_on:
       cegx_db:
         condition: service_healthy
@@ -46,21 +56,25 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-cegx}:${POSTGRES_PASSWORD:-cegxpass}@cegx_db:5432/${POSTGRES_DB:-cegx}
-      REDIS_URL: redis://redis:6379
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET:-changeme-jwt-secret-min-32-chars!!}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-changeme-refresh-secret-min-32chars}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
       GROK_API_KEY: ${GROK_API_KEY:-}
       GROK_MODEL: ${GROK_MODEL:-grok-3}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@cegx.co.uk}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin@123456}
       PORT: 3003
       NODE_ENV: production
+      CORS_ORIGIN: ${FRONTEND_URL:-http://localhost:3002}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3002}
       APP_URL: ${APP_URL:-http://localhost:3003}
     ports:
       - '3003:3003'
     healthcheck:
-      test: ['CMD-SHELL', 'wget -qO- http://localhost:3003/api/health || exit 1']
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:3003/health || exit 1']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -72,10 +86,13 @@ services:
       dockerfile: Dockerfile
     container_name: cegx_frontend
     restart: always
+    networks:
+      - cegx_net
     depends_on:
       - backend
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3003/api}
+      INTERNAL_API_URL: http://backend:3003/api
     ports:
       - '3002:3002'
     healthcheck:

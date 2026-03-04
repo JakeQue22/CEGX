@@ -34,7 +34,10 @@ import { GrokModule } from './grok/grok.module';
     BullModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        redis: configService.get<string>('REDIS_URL', 'redis://localhost:6380'),
+        redis: {
+          host: configService.get<string>('REDIS_HOST', 'localhost'),
+          port: configService.get<number>('REDIS_PORT', 6380),
+        },
       }),
       inject: [ConfigService],
     }),
