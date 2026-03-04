@@ -209,7 +209,7 @@ export class DealsService {
         action: 'UPDATE',
         entityType: 'Deal',
         entityId: id,
-        metadata: { changes: dto },
+        metadata: { changes: { ...dto } },
       },
     });
 
