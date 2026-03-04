@@ -69,7 +69,7 @@ export default function NewDealPage() {
         typeof err === 'object' &&
         'response' in err &&
         (err as { response?: { data?: { message?: string } } }).response?.data?.message;
-      setError(msg || 'Failed to create deal');
+      setError(typeof msg === 'string' ? msg : 'Failed to create deal');
     },
   });
 
