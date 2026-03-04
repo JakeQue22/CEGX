@@ -27,7 +27,7 @@ export default function DealDetailPage({ params }: { params: Promise<{ id: strin
 
   const { data: stages = [] } = useQuery<PipelineStage[]>({
     queryKey: ['pipeline-stages'],
-    queryFn: () => axiosInstance.get('/pipeline-stages').then((r) => r.data),
+    queryFn: () => axiosInstance.get('/pipeline').then((r) => r.data),
   });
 
   const updateStatus = useMutation({
@@ -84,9 +84,8 @@ export default function DealDetailPage({ params }: { params: Promise<{ id: strin
             { label: 'Supplier', value: deal.supplier?.name ?? '—' },
             { label: 'Product', value: deal.product?.name ?? '—' },
             { label: 'Quantity', value: deal.quantity.toLocaleString() },
-            { label: 'Cost/Unit', value: `£${deal.costPrice?.toFixed(2)}` },
-            { label: 'Assigned To', value: deal.assignedTo?.name ?? '—' },
-            { label: 'Expected Close', value: deal.expectedCloseDate ? formatDate(deal.expectedCloseDate) : '—' },
+            { label: 'Cost/Unit', value: `£${Number(deal.costPriceSnapshot ?? 0).toFixed(2)}` },
+            { label: 'Assigned To', value: deal.assignedUser?.name ?? '—' },
           ].map(({ label, value }) => (
             <div key={label}>
               <dt className="text-xs text-gray-500">{label}</dt>
@@ -154,8 +153,8 @@ export default function DealDetailPage({ params }: { params: Promise<{ id: strin
             {deal.followUps.map((fu: FollowUp) => (
               <li key={fu.id} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 bg-gray-50">
                 <div>
-                  <p className={`text-sm font-medium ${fu.isCompleted ? 'line-through text-gray-400' : 'text-gray-900'}`}>{fu.title}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">Due: {formatDate(fu.dueDate)}</p>
+                  <p className={`text-sm font-medium ${fu.isCompleted ? 'line-through text-gray-400' : 'text-gray-900'}`}>{fu.note ?? 'Follow-up'}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Due: {formatDate(fu.dueAt)}</p>
                 </div>
                 {!fu.isCompleted && (
                   <Button variant="ghost" size="sm" onClick={() => completeFollowUp.mutate(fu.id)}>Complete</Button>

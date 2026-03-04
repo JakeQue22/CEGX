@@ -20,7 +20,7 @@ export default function DealsPage() {
 
   const { data: stages = [] } = useQuery<PipelineStage[]>({
     queryKey: ['pipeline-stages'],
-    queryFn: () => axiosInstance.get('/pipeline-stages').then((r) => r.data),
+    queryFn: () => axiosInstance.get('/pipeline').then((r) => r.data),
   });
 
   const { data: suppliers = [] } = useQuery<Supplier[]>({
@@ -48,9 +48,9 @@ export default function DealsPage() {
     { key: 'stage', header: 'Stage', render: (d) => <span className="text-sm text-gray-600">{d.stage?.name ?? '—'}</span> },
     { key: 'supplier', header: 'Supplier', render: (d) => d.supplier?.name ?? '—' },
     { key: 'salePrice', header: 'Sale Price', sortable: true, render: (d) => <GBPAmount amount={d.salePrice} /> },
-    { key: 'marginPercent', header: 'Margin', sortable: true, render: (d) => (
-      <span className={d.marginPercent >= 20 ? 'text-green-600 font-medium' : d.marginPercent >= 10 ? 'text-yellow-600 font-medium' : 'text-red-600 font-medium'}>
-        {d.marginPercent?.toFixed(1)}%
+    { key: 'profitMarginPercent', header: 'Margin', sortable: true, render: (d) => (
+      <span className={d.profitMarginPercent >= 20 ? 'text-green-600 font-medium' : d.profitMarginPercent >= 10 ? 'text-yellow-600 font-medium' : 'text-red-600 font-medium'}>
+        {d.profitMarginPercent?.toFixed(1)}%
       </span>
     )},
     { key: 'createdAt', header: 'Created', sortable: true, render: (d) => new Date(d.createdAt).toLocaleDateString('en-GB') },

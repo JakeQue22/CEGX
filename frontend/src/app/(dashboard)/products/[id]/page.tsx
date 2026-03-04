@@ -25,12 +25,12 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   if (!product) return <div className="text-red-600">Product not found.</div>;
 
   // Determine unit cost based on bulk pricing
-  let unitCost = product.baseCost;
-  if (product.bulkPricing && product.bulkPricing.length > 0) {
-    const matchedTier = product.bulkPricing
-      .filter((t) => calcQty >= t.minQuantity && (t.maxQuantity === null || t.maxQuantity === undefined || calcQty <= t.maxQuantity))
+  let unitCost = product.baseCostPrice;
+  if (product.bulkPricings && product.bulkPricings.length > 0) {
+    const matchedTier = product.bulkPricings
+      .filter((t) => calcQty >= t.minQuantity)
       .sort((a, b) => b.minQuantity - a.minQuantity)[0];
-    if (matchedTier) unitCost = matchedTier.unitCost;
+    if (matchedTier) unitCost = matchedTier.bulkCostPrice;
   }
 
   const totalCost = unitCost * calcQty;
@@ -55,7 +55,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         </div>
         <div className="text-right">
           <p className="text-xs text-gray-500">Base Cost</p>
-          <GBPAmount amount={product.baseCost} className="text-xl font-bold text-gray-900" />
+          <GBPAmount amount={product.baseCostPrice} className="text-xl font-bold text-gray-900" />
         </div>
       </div>
 
@@ -64,7 +64,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         <h3 className="text-base font-semibold text-gray-900 mb-4">Details</h3>
         <dl className="grid grid-cols-2 gap-4">
           <div><dt className="text-xs text-gray-500">Supplier</dt><dd className="text-sm font-medium">{product.supplier?.name ?? '—'}</dd></div>
-          <div><dt className="text-xs text-gray-500">Base Cost</dt><dd className="text-sm font-medium"><GBPAmount amount={product.baseCost} /></dd></div>
+          <div><dt className="text-xs text-gray-500">Base Cost</dt><dd className="text-sm font-medium"><GBPAmount amount={product.baseCostPrice} /></dd></div>
         </dl>
         {product.description && (
           <div className="mt-4 pt-4 border-t">
@@ -75,23 +75,21 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       </div>
 
       {/* Bulk Pricing */}
-      {product.bulkPricing && product.bulkPricing.length > 0 && (
+      {product.bulkPricings && product.bulkPricings.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
           <h3 className="text-base font-semibold text-gray-900 mb-4">Bulk Pricing Tiers</h3>
           <table className="min-w-full text-sm">
             <thead>
               <tr className="text-xs text-gray-500 uppercase border-b">
                 <th className="pb-2 text-left">Min Qty</th>
-                <th className="pb-2 text-left">Max Qty</th>
                 <th className="pb-2 text-left">Unit Cost</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {product.bulkPricing.map((t) => (
+              {product.bulkPricings.map((t) => (
                 <tr key={t.id}>
                   <td className="py-2">{t.minQuantity.toLocaleString()}</td>
-                  <td className="py-2">{t.maxQuantity?.toLocaleString() ?? '∞'}</td>
-                  <td className="py-2"><GBPAmount amount={t.unitCost} /></td>
+                  <td className="py-2"><GBPAmount amount={t.bulkCostPrice} /></td>
                 </tr>
               ))}
             </tbody>

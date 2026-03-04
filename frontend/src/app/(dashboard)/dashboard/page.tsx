@@ -159,17 +159,17 @@ export default function DashboardPage() {
             {upcomingFollowUps.slice(0, 5).map((fu: FollowUp) => (
               <li key={fu.id} className="px-6 py-3 flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{fu.title}</p>
+                  <p className="text-sm font-medium text-gray-900">{fu.note ?? 'Follow-up'}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{fu.deal?.title || 'No deal'}</p>
                 </div>
                 <span
                   className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                    new Date(fu.dueDate) < new Date()
+                    new Date(fu.dueAt) < new Date()
                       ? 'bg-red-100 text-red-700'
                       : 'bg-blue-100 text-blue-700'
                   }`}
                 >
-                  {formatDate(fu.dueDate)}
+                  {formatDate(fu.dueAt)}
                 </span>
               </li>
             ))}

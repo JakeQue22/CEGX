@@ -11,7 +11,7 @@ interface DealCardProps {
 
 export function DealCard({ deal }: DealCardProps) {
   const marginColor =
-    deal.marginPercent >= 20 ? 'text-green-600' : deal.marginPercent >= 10 ? 'text-yellow-600' : 'text-red-600';
+    deal.profitMarginPercent >= 20 ? 'text-green-600' : deal.profitMarginPercent >= 10 ? 'text-yellow-600' : 'text-red-600';
 
   return (
     <Link href={`/deals/${deal.id}`}>
@@ -40,7 +40,7 @@ export function DealCard({ deal }: DealCardProps) {
           <div className="text-right">
             <p className="text-xs text-gray-400">Margin</p>
             <p className={`text-sm font-semibold ${marginColor}`}>
-              {deal.marginPercent?.toFixed(1)}%
+              {deal.profitMarginPercent?.toFixed(1)}%
             </p>
           </div>
         </div>

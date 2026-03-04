@@ -41,7 +41,7 @@ export default function NewDealPage() {
 
   const { data: stages = [] } = useQuery<PipelineStage[]>({
     queryKey: ['pipeline-stages'],
-    queryFn: () => axiosInstance.get('/pipeline-stages').then((r) => r.data),
+    queryFn: () => axiosInstance.get('/pipeline').then((r) => r.data),
   });
 
   // Auto-fill stageId with first stage
@@ -51,7 +51,7 @@ export default function NewDealPage() {
 
   // Get selected product for cost preview
   const selectedProduct = products.find((p) => p.id === productId);
-  const baseCost = selectedProduct?.baseCost ?? 0;
+  const baseCost = selectedProduct?.baseCostPrice ?? 0;
   const totalCost = baseCost * quantity;
   const vatPercent = settings?.defaultVatPercent ?? 20;
   const adPercent = settings?.defaultAdPercent ?? 10;
@@ -86,7 +86,6 @@ export default function NewDealPage() {
       productId: productId || undefined,
       quantity,
       salePrice,
-      adSpend: adSpend || undefined,
       stageId,
       notes: notes || undefined,
     });

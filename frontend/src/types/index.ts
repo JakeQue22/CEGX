@@ -51,12 +51,13 @@ export interface CompanySettings {
 export interface Supplier {
   id: string;
   name: string;
-  contactName?: string;
-  email?: string;
-  phone?: string;
+  contactEmail?: string;
+  contactPhone?: string;
   country?: string;
   rating?: number;
+  isActive?: boolean;
   notes?: string;
+  _count?: { products: number; deals: number };
   createdAt: string;
   updatedAt: string;
 }
@@ -73,8 +74,7 @@ export interface BulkPricing {
   id: string;
   productId: string;
   minQuantity: number;
-  maxQuantity?: number;
-  unitCost: number;
+  bulkCostPrice: number;
 }
 
 export interface Product {
@@ -82,12 +82,14 @@ export interface Product {
   name: string;
   sku: string;
   description?: string;
-  baseCost: number;
+  baseCostPrice: number;
+  vatPercent?: number;
+  adPercent?: number;
   categoryId?: string;
   category?: ProductCategory;
   supplierId?: string;
   supplier?: Supplier;
-  bulkPricing?: BulkPricing[];
+  bulkPricings?: BulkPricing[];
   isArchived: boolean;
   createdAt: string;
   updatedAt: string;
@@ -112,22 +114,20 @@ export interface Deal {
   supplier?: Supplier;
   productId?: string;
   product?: Product;
+  assignedUserId?: string;
+  assignedUser?: User;
   quantity: number;
-  costPrice: number;
   salePrice: number;
-  adSpend: number;
-  vatPercent: number;
-  adPercent: number;
+  costPriceSnapshot: number;
+  adPercentSnapshot: number;
+  vatPercentSnapshot: number;
   revenue: number;
   cost: number;
+  adSpend: number;
+  vat: number;
   grossProfit: number;
-  netProfit: number;
-  vatAmount: number;
-  marginPercent: number;
+  profitMarginPercent: number;
   notes?: string;
-  assignedToId?: string;
-  assignedTo?: User;
-  expectedCloseDate?: string;
   closedAt?: string;
   stageHistory?: DealStageHistory[];
   followUps?: FollowUp[];
@@ -189,15 +189,15 @@ export interface Notification {
 
 export interface FollowUp {
   id: string;
-  dealId: string;
-  deal?: Deal;
-  title: string;
-  description?: string;
-  dueDate: string;
+  dealId?: string;
+  deal?: { id: string; title: string };
+  supplierId?: string;
+  supplier?: { id: string; name: string };
+  note?: string;
+  dueAt: string;
   isCompleted: boolean;
-  completedAt?: string;
-  assignedToId?: string;
-  assignedTo?: User;
+  assignedUserId?: string;
+  assignedUser?: { id: string; name: string };
   createdAt: string;
   updatedAt: string;
 }

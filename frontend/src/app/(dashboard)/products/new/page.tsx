@@ -65,13 +65,12 @@ export default function NewProductPage() {
       name: form.name,
       sku: form.sku,
       description: form.description || undefined,
-      baseCost: Number(form.baseCost),
+      baseCostPrice: Number(form.baseCost),
       supplierId: form.supplierId || undefined,
       categoryId: form.categoryId || undefined,
-      bulkPricing: tiers.length > 0 ? tiers.map((t) => ({
+      bulkPricings: tiers.length > 0 ? tiers.map((t) => ({
         minQuantity: t.minQuantity,
-        maxQuantity: t.maxQuantity ? Number(t.maxQuantity) : undefined,
-        unitCost: t.unitCost,
+        bulkCostPrice: t.unitCost,
       })) : undefined,
     });
   }

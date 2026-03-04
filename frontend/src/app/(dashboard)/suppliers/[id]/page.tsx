@@ -73,9 +73,8 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
         <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
           <dl className="grid grid-cols-2 gap-5">
             {[
-              { label: 'Contact', value: supplier.contactName ?? '—' },
-              { label: 'Email', value: supplier.email ?? '—' },
-              { label: 'Phone', value: supplier.phone ?? '—' },
+              { label: 'Email', value: supplier.contactEmail ?? '—' },
+              { label: 'Phone', value: supplier.contactPhone ?? '—' },
               { label: 'Country', value: supplier.country ?? '—' },
               { label: 'Rating', value: supplier.rating != null ? `${supplier.rating}/5 ★` : '—' },
             ].map(({ label, value }) => (
@@ -115,7 +114,7 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
                       <Link href={`/products/${p.id}`} className="hover:text-blue-600">{p.name}</Link>
                     </td>
                     <td className="px-4 py-3 text-gray-500">{p.category?.name ?? '—'}</td>
-                    <td className="px-4 py-3"><GBPAmount amount={p.baseCost} /></td>
+                    <td className="px-4 py-3"><GBPAmount amount={p.baseCostPrice} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -163,7 +162,7 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
             { label: 'Total Profit', value: <GBPAmount amount={totalProfit} className="text-xl font-bold text-green-700" /> },
             { label: 'Won Deals', value: deals.filter((d) => d.status === 'WON').length.toString() },
             { label: 'Open Deals', value: deals.filter((d) => d.status === 'OPEN').length.toString() },
-            { label: 'Avg Margin', value: `${deals.length > 0 ? (deals.reduce((s, d) => s + (d.marginPercent ?? 0), 0) / deals.length).toFixed(1) : 0}%` },
+            { label: 'Avg Margin', value: `${deals.length > 0 ? (deals.reduce((s, d) => s + (d.profitMarginPercent ?? 0), 0) / deals.length).toFixed(1) : 0}%` },
           ].map(({ label, value }) => (
             <div key={label} className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
               <p className="text-xs text-gray-500">{label}</p>
