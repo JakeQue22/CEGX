@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import axiosInstance from '@/lib/axios';
-import { MarketingCampaign, MarketingStats } from '@/types';
+import { MarketingCampaign, MarketingStats, ProcurementIntelligence } from '@/types';
 import { Badge } from '@/components/ui/Badge';
 import { GBPAmount, formatGBP } from '@/components/ui/GBPAmount';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -13,14 +13,16 @@ import {
   PieChart, Pie, Cell, CartesianGrid,
 } from 'recharts';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 const LEAD_STATUS_ORDER = ['NEW', 'CONTACTED', 'RESPONDED', 'QUALIFIED', 'CONVERTED'];
 const LEAD_COLORS: Record<string, string> = {
   NEW: '#3B82F6', CONTACTED: '#F59E0B', RESPONDED: '#8B5CF6',
   QUALIFIED: '#10B981', CONVERTED: '#059669',
 };
 const PIE_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#6366F1', '#14B8A6'];
+const OUTREACH_COLORS: Record<string, string> = {
+  DRAFT: '#9CA3AF', QUEUED: '#9CA3AF', SENT: '#8B5CF6',
+  DELIVERED: '#8B5CF6', OPENED: '#3B82F6', REPLIED: '#10B981', BOUNCED: '#EF4444',
+};
 
 function StatCard({ label, value, sub, icon, color }: { label: string; value: string | number; sub?: string; icon: React.ReactNode; color: string }) {
   return (
@@ -67,7 +69,7 @@ export default function MarketingPage() {
         Array.isArray(r.data) ? r.data : r.data.data ?? []),
   });
 
-  const { data: intel, isLoading } = useQuery<any>({
+  const { data: intel, isLoading } = useQuery<ProcurementIntelligence>({
     queryKey: ['procurement-intelligence'],
     queryFn: () => axiosInstance.get('/analytics/procurement-intelligence').then((r) => r.data),
   });
@@ -76,7 +78,7 @@ export default function MarketingPage() {
 
   if (isLoading) return <LoadingSpinner />;
 
-  const overview = intel?.overview ?? {};
+  const overview = intel?.overview ?? { totalSuppliers: 0, activeSuppliers: 0, totalProducts: 0, totalCategories: 0, totalLeads: 0, pipelineValue: 0, winRate: 0, avgDealSize: 0 };
   const leadFunnel = intel?.leadFunnel ?? [];
   const topSuppliers = intel?.topSuppliers ?? [];
   const categoryDemand = intel?.categoryDemand ?? [];
@@ -86,7 +88,7 @@ export default function MarketingPage() {
 
   // Sort lead funnel by status order
   const sortedFunnel = LEAD_STATUS_ORDER.map((status) => {
-    const item = leadFunnel.find((f: any) => f.status === status);
+    const item = leadFunnel.find((f) => f.status === status);
     return { status, count: item?.count ?? 0 };
   });
 
@@ -129,23 +131,23 @@ export default function MarketingPage() {
 
       {/* Overview KPIs — 8 cards across 2 rows */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard label="Active Suppliers" value={overview.activeSuppliers ?? 0} sub={`${overview.totalSuppliers ?? 0} total`} color="bg-blue-50 text-blue-600"
+        <StatCard label="Active Suppliers" value={overview.activeSuppliers} sub={`${overview.totalSuppliers} total`} color="bg-blue-50 text-blue-600"
           icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5" /></svg>} />
-        <StatCard label="Products" value={overview.totalProducts ?? 0} sub={`${overview.totalCategories ?? 0} categories`} color="bg-green-50 text-green-600"
+        <StatCard label="Products" value={overview.totalProducts} sub={`${overview.totalCategories} categories`} color="bg-green-50 text-green-600"
           icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>} />
-        <StatCard label="Total Leads" value={overview.totalLeads ?? 0} sub={`${stats?.active ?? 0} active campaigns`} color="bg-purple-50 text-purple-600"
+        <StatCard label="Total Leads" value={overview.totalLeads} sub={`${stats?.active ?? 0} active campaigns`} color="bg-purple-50 text-purple-600"
           icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>} />
-        <StatCard label="Pipeline Value" value={formatGBP(overview.pipelineValue ?? 0)} sub={`${overview.winRate ?? 0}% win rate`} color="bg-orange-50 text-orange-600"
+        <StatCard label="Pipeline Value" value={formatGBP(overview.pipelineValue)} sub={`${overview.winRate}% win rate`} color="bg-orange-50 text-orange-600"
           icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatCard label="Campaigns" value={stats?.total ?? 0} sub={`${stats?.active ?? 0} active`} color="bg-indigo-50 text-indigo-600"
           icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>} />
-        <StatCard label="Emails Sent" value={stats?.emailsSent ?? 0} sub={outreach.SENT ? `${outreach.OPENED ?? 0} opened` : 'No outreach yet'} color="bg-teal-50 text-teal-600"
+        <StatCard label="Emails Sent" value={stats?.emailsSent ?? 0} sub={outreach.OPENED ? `${outreach.OPENED} opened` : 'No outreach yet'} color="bg-teal-50 text-teal-600"
           icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>} />
-        <StatCard label="Avg Deal Size" value={formatGBP(overview.avgDealSize ?? 0)} sub="Won deals (90d)" color="bg-emerald-50 text-emerald-600"
+        <StatCard label="Avg Deal Size" value={formatGBP(overview.avgDealSize)} sub="Won deals (90d)" color="bg-emerald-50 text-emerald-600"
           icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>} />
-        <StatCard label="Win Rate" value={`${overview.winRate ?? 0}%`} sub="Last 90 days" color="bg-rose-50 text-rose-600"
+        <StatCard label="Win Rate" value={`${overview.winRate}%`} sub="Last 90 days" color="bg-rose-50 text-rose-600"
           icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>} />
       </div>
 
@@ -169,12 +171,12 @@ export default function MarketingPage() {
         {/* Lead Funnel */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <SectionHeader title="Lead Conversion Funnel" action={{ label: 'All Leads', href: '/marketing/leads' }} />
-          {sortedFunnel.every((f: any) => f.count === 0) ? (
+          {sortedFunnel.every((f) => f.count === 0) ? (
             <p className="text-sm text-gray-400 text-center py-10">No leads yet. Start a campaign to generate leads.</p>
           ) : (
             <div className="space-y-3">
-              {sortedFunnel.map((item: any) => {
-                const max = Math.max(...sortedFunnel.map((f: any) => f.count), 1);
+              {sortedFunnel.map((item) => {
+                const max = Math.max(...sortedFunnel.map((f) => f.count), 1);
                 const pct = Math.round((item.count / max) * 100);
                 return (
                   <div key={item.status} className="flex items-center gap-3">
@@ -206,7 +208,7 @@ export default function MarketingPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie data={categoryDemand.slice(0, 8)} dataKey="wonRevenue" nameKey="name" cx="50%" cy="50%" outerRadius={60} label={false}>
-                      {categoryDemand.slice(0, 8).map((_: any, idx: number) => (
+                      {categoryDemand.slice(0, 8).map((_, idx) => (
                         <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
                       ))}
                     </Pie>
@@ -215,7 +217,7 @@ export default function MarketingPage() {
                 </ResponsiveContainer>
               </div>
               <div className="flex-1 space-y-2">
-                {categoryDemand.slice(0, 6).map((cat: any, idx: number) => (
+                {categoryDemand.slice(0, 6).map((cat, idx) => (
                   <div key={cat.id} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }} />
@@ -255,7 +257,7 @@ export default function MarketingPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {topSuppliers.slice(0, 10).map((s: any) => (
+                {topSuppliers.slice(0, 10).map((s) => (
                   <tr key={s.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => router.push(`/suppliers/${s.id}`)}>
                     <td className="px-4 py-3 font-medium text-gray-900">{s.name}</td>
                     <td className="px-4 py-3 text-gray-500">{s.productCount}</td>
@@ -291,7 +293,7 @@ export default function MarketingPage() {
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={campaignPerf.slice(0, 8)} margin={{ top: 4, right: 4, left: 4, bottom: 4 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={-20} textAnchor="end" height={50} />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-15} textAnchor="end" height={50} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
                 <Bar dataKey="leadsGenerated" name="Leads" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
@@ -309,15 +311,14 @@ export default function MarketingPage() {
             <p className="text-sm text-gray-400 text-center py-10">No outreach emails sent yet.</p>
           ) : (
             <div className="space-y-3">
-              {['DRAFT', 'QUEUED', 'SENT', 'DELIVERED', 'OPENED', 'REPLIED', 'BOUNCED'].map((status) => {
+              {(['DRAFT', 'QUEUED', 'SENT', 'DELIVERED', 'OPENED', 'REPLIED', 'BOUNCED'] as const).map((status) => {
                 const count = outreach[status] ?? 0;
                 const pct = outreach.total > 0 ? Math.round((count / outreach.total) * 100) : 0;
-                const color = status === 'REPLIED' ? '#10B981' : status === 'OPENED' ? '#3B82F6' : status === 'BOUNCED' ? '#EF4444' : status === 'SENT' || status === 'DELIVERED' ? '#8B5CF6' : '#9CA3AF';
                 return (
                   <div key={status} className="flex items-center gap-3">
                     <span className="text-xs font-medium text-gray-500 w-20">{status}</span>
                     <div className="flex-1 h-6 bg-gray-100 rounded overflow-hidden relative">
-                      <div className="h-full rounded transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
+                      <div className="h-full rounded transition-all" style={{ width: `${pct}%`, backgroundColor: OUTREACH_COLORS[status] }} />
                     </div>
                     <span className="text-xs font-bold text-gray-600 w-12 text-right">{count}</span>
                   </div>
@@ -350,7 +351,7 @@ export default function MarketingPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {recentLeads.map((lead: any) => (
+                {recentLeads.map((lead) => (
                   <tr key={lead.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-gray-900">{lead.companyName}</td>
                     <td className="px-4 py-3 text-gray-500">{lead.contactName ?? '—'}</td>

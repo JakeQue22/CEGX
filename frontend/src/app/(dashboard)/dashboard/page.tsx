@@ -6,14 +6,12 @@ import { Card } from '@/components/ui/Card';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { GBPAmount, formatGBP } from '@/components/ui/GBPAmount';
 import { Badge } from '@/components/ui/Badge';
-import { DashboardAnalytics, FollowUp, Deal, Supplier } from '@/types';
+import { DashboardAnalytics, FollowUp, Deal, SupplierMarginData } from '@/types';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid, Legend, PieChart, Pie, Cell,
 } from 'recharts';
 import Link from 'next/link';
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 const PIE_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 
@@ -37,7 +35,6 @@ export default function DashboardPage() {
     queryFn: () => axiosInstance.get('/analytics/dashboard').then((r) => r.data),
   });
 
-  // Recent deals for activity feed
   const { data: recentDeals } = useQuery<Deal[]>({
     queryKey: ['recent-deals'],
     queryFn: () =>
@@ -45,8 +42,7 @@ export default function DashboardPage() {
         .then((r) => Array.isArray(r.data) ? r.data : r.data.data ?? []),
   });
 
-  // Top suppliers
-  const { data: suppliersData } = useQuery<any>({
+  const { data: suppliersData } = useQuery<SupplierMarginData[]>({
     queryKey: ['margin-by-supplier'],
     queryFn: () => axiosInstance.get('/analytics/margin-by-supplier').then((r) => r.data),
   });
@@ -71,9 +67,7 @@ export default function DashboardPage() {
 
   const deals = recentDeals ?? [];
   const topSuppliers = (suppliersData ?? []).slice(0, 5);
-
-  // Pipeline value from dealsByStage
-  const totalPipelineValue = dealsByStage.reduce((a: number, s: any) => a + Number(s.value ?? 0), 0);
+  const totalPipelineValue = dealsByStage.reduce((a, s) => a + Number(s.value ?? 0), 0);
 
   return (
     <div className="space-y-6">
@@ -138,7 +132,6 @@ export default function DashboardPage() {
 
       {/* Charts row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Deals by Stage */}
         <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-semibold text-gray-900">Deals by Stage</h2>
@@ -159,7 +152,6 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Profit over time */}
         <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-semibold text-gray-900">Profit Over Time</h2>
@@ -258,7 +250,7 @@ export default function DashboardPage() {
             <p className="px-5 py-8 text-center text-sm text-gray-400">No supplier data yet</p>
           ) : (
             <ul className="divide-y divide-gray-100">
-              {topSuppliers.map((s: any, idx: number) => (
+              {topSuppliers.map((s, idx) => (
                 <li key={s.supplierId} className="px-5 py-3 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }}>
@@ -282,7 +274,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Pipeline Stage Breakdown - Pie chart + summary */}
+      {/* Pipeline Stage Breakdown */}
       {dealsByStage.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
@@ -294,7 +286,7 @@ export default function DashboardPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie data={dealsByStage} dataKey="value" nameKey="stage" cx="50%" cy="50%" outerRadius={70} label={false}>
-                    {dealsByStage.map((_: any, idx: number) => (
+                    {dealsByStage.map((_, idx) => (
                       <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
                     ))}
                   </Pie>
@@ -303,7 +295,7 @@ export default function DashboardPage() {
               </ResponsiveContainer>
             </div>
             <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {dealsByStage.map((stage: any, idx: number) => (
+              {dealsByStage.map((stage, idx) => (
                 <div key={stage.stage} className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }} />
                   <div>

@@ -379,3 +379,69 @@ export interface MarketingStats {
   emailsSent: number;
   byStatus: { status: string; _count: number }[];
 }
+
+// ─── Procurement Intelligence ─────────────────────────────────────────────────
+
+export interface ProcurementIntelligence {
+  overview: {
+    totalSuppliers: number;
+    activeSuppliers: number;
+    totalProducts: number;
+    totalCategories: number;
+    totalLeads: number;
+    pipelineValue: number;
+    winRate: number;
+    avgDealSize: number;
+  };
+  leadFunnel: { status: string; count: number }[];
+  topSuppliers: {
+    id: string;
+    name: string;
+    totalDeals: number;
+    wonDeals: number;
+    openDeals: number;
+    productCount: number;
+    totalRevenue: number;
+    totalProfit: number;
+    avgMargin: number;
+  }[];
+  categoryDemand: {
+    id: string;
+    name: string;
+    productCount: number;
+    totalDealCount: number;
+    wonRevenue: number;
+  }[];
+  campaignPerformance: {
+    id: string;
+    name: string;
+    type: string;
+    status: string;
+    leadsGenerated: number;
+    connections: number;
+    emailsSent: number;
+    startedAt: string | null;
+    createdAt: string;
+  }[];
+  recentLeads: {
+    id: string;
+    companyName: string;
+    contactName: string | null;
+    contactEmail: string | null;
+    industry: string | null;
+    source: string | null;
+    status: string;
+    campaignName: string | null;
+    createdAt: string;
+  }[];
+  outreachPerformance: Record<string, number>;
+}
+
+export interface SupplierMarginData {
+  supplierId: string;
+  supplierName: string;
+  wonDeals: number;
+  totalRevenue: number;
+  totalGrossProfit: number;
+  avgProfitMarginPercent: number;
+}
