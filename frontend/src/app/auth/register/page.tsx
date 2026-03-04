@@ -3,16 +3,12 @@
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
-import { Role } from '@/types';
-
-const ROLES: Role[] = ['ADMIN', 'SALES_MANAGER', 'PROCUREMENT_OFFICER', 'VIEWER'];
 
 export default function RegisterPage() {
   const { register } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<Role>('VIEWER');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -21,7 +17,7 @@ export default function RegisterPage() {
     setError('');
     setLoading(true);
     try {
-      await register({ name, email, password, role });
+      await register({ name, email, password });
     } catch (err: unknown) {
       const msg =
         err &&
@@ -99,21 +95,6 @@ export default function RegisterPage() {
                 minLength={8}
                 className="w-full px-4 py-2.5 rounded-lg bg-[#0f172a] border border-slate-600 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
               />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Role</label>
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value as Role)}
-                className="w-full px-4 py-2.5 rounded-lg bg-[#0f172a] border border-slate-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-              >
-                {ROLES.map((r) => (
-                  <option key={r} value={r}>
-                    {r.replace('_', ' ')}
-                  </option>
-                ))}
-              </select>
             </div>
 
             <button
