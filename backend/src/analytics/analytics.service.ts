@@ -290,6 +290,189 @@ export class AnalyticsService {
     });
   }
 
+  async getProcurementIntelligence() {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+
+    const [
+      totalSuppliers,
+      activeSuppliers,
+      totalProducts,
+      totalCategories,
+      totalLeads,
+      leadsByStatus,
+      recentDeals,
+      topSuppliers,
+      categoryDemand,
+      campaignStats,
+      recentLeads,
+      outreachStats,
+    ] = await Promise.all([
+      // Supplier counts
+      this.prisma.supplier.count(),
+      this.prisma.supplier.count({ where: { isActive: true } }),
+      // Product & category counts
+      this.prisma.product.count({ where: { isArchived: false } }),
+      this.prisma.productCategory.count(),
+      // Lead counts
+      this.prisma.marketingLead.count(),
+      this.prisma.marketingLead.groupBy({ by: ['status'], _count: true }),
+      // Recent deals for pipeline velocity
+      this.prisma.deal.findMany({
+        where: { createdAt: { gte: ninetyDaysAgo } },
+        select: { status: true, revenue: true, grossProfit: true, closedAt: true, createdAt: true },
+      }),
+      // Top suppliers by deal value
+      this.prisma.supplier.findMany({
+        where: { deals: { some: {} } },
+        include: {
+          deals: {
+            select: { status: true, revenue: true, grossProfit: true, profitMarginPercent: true },
+          },
+          _count: { select: { products: true } },
+        },
+        take: 10,
+      }),
+      // Category demand (products per category with deal count)
+      this.prisma.productCategory.findMany({
+        include: {
+          products: {
+            include: {
+              _count: { select: { deals: true } },
+              deals: {
+                where: { status: 'WON' },
+                select: { revenue: true },
+              },
+            },
+          },
+        },
+      }),
+      // Campaign performance
+      this.prisma.marketingCampaign.findMany({
+        include: {
+          _count: { select: { leads: true, connections: true, outreachEmails: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+      // Recent leads
+      this.prisma.marketingLead.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        include: { campaign: { select: { id: true, name: true } } },
+      }),
+      // Outreach email stats
+      this.prisma.outreachEmail.groupBy({ by: ['status'], _count: true }),
+    ]);
+
+    // Lead funnel data
+    const leadFunnel = leadsByStatus.map((l) => ({
+      status: l.status,
+      count: l._count,
+    }));
+
+    // Pipeline velocity (last 90 days)
+    const wonDeals = recentDeals.filter((d) => d.status === 'WON');
+    const lostDeals = recentDeals.filter((d) => d.status === 'LOST');
+    const openDeals = recentDeals.filter((d) => d.status === 'OPEN');
+    const winRate = wonDeals.length + lostDeals.length > 0
+      ? parseFloat(((wonDeals.length / (wonDeals.length + lostDeals.length)) * 100).toFixed(1))
+      : 0;
+    const avgDealSize = wonDeals.length > 0
+      ? parseFloat((wonDeals.reduce((a, d) => a + Number(d.revenue), 0) / wonDeals.length).toFixed(2))
+      : 0;
+    const pipelineValue = openDeals.reduce((a, d) => a + Number(d.revenue), 0);
+
+    // Top suppliers enriched
+    const topSuppliersData = topSuppliers
+      .map((s) => {
+        const won = s.deals.filter((d) => d.status === 'WON');
+        const totalRevenue = won.reduce((a, d) => a + Number(d.revenue), 0);
+        const totalProfit = won.reduce((a, d) => a + Number(d.grossProfit), 0);
+        const avgMargin = won.length > 0
+          ? won.reduce((a, d) => a + Number(d.profitMarginPercent), 0) / won.length
+          : 0;
+        return {
+          id: s.id,
+          name: s.name,
+          totalDeals: s.deals.length,
+          wonDeals: won.length,
+          openDeals: s.deals.filter((d) => d.status === 'OPEN').length,
+          productCount: s._count.products,
+          totalRevenue,
+          totalProfit,
+          avgMargin: parseFloat(avgMargin.toFixed(1)),
+        };
+      })
+      .sort((a, b) => b.totalRevenue - a.totalRevenue);
+
+    // Category demand analysis
+    const categoryDemandData = categoryDemand.map((cat) => {
+      const totalDealCount = cat.products.reduce((a, p) => a + p._count.deals, 0);
+      const totalRevenue = cat.products.reduce(
+        (a, p) => a + p.deals.reduce((s, d) => s + Number(d.revenue), 0),
+        0,
+      );
+      return {
+        id: cat.id,
+        name: cat.name,
+        productCount: cat.products.length,
+        totalDealCount,
+        wonRevenue: totalRevenue,
+      };
+    }).sort((a, b) => b.wonRevenue - a.wonRevenue);
+
+    // Outreach performance
+    const outreachPerf = outreachStats.reduce(
+      (acc, s) => {
+        acc[s.status] = s._count;
+        acc.total += s._count;
+        return acc;
+      },
+      { total: 0 } as Record<string, number>,
+    );
+
+    return {
+      overview: {
+        totalSuppliers,
+        activeSuppliers,
+        totalProducts,
+        totalCategories,
+        totalLeads,
+        pipelineValue,
+        winRate,
+        avgDealSize,
+      },
+      leadFunnel,
+      topSuppliers: topSuppliersData,
+      categoryDemand: categoryDemandData,
+      campaignPerformance: campaignStats.map((c) => ({
+        id: c.id,
+        name: c.name,
+        type: c.type,
+        status: c.status,
+        leadsGenerated: c._count.leads,
+        connections: c._count.connections,
+        emailsSent: c._count.outreachEmails,
+        startedAt: c.startedAt,
+        createdAt: c.createdAt,
+      })),
+      recentLeads: recentLeads.map((l) => ({
+        id: l.id,
+        companyName: l.companyName,
+        contactName: l.contactName,
+        contactEmail: l.contactEmail,
+        industry: l.industry,
+        source: l.source,
+        status: l.status,
+        campaignName: l.campaign?.name ?? null,
+        createdAt: l.createdAt,
+      })),
+      outreachPerformance: outreachPerf,
+    };
+  }
+
   async getVatLiability(from?: string, to?: string) {
     const result = await this.prisma.deal.aggregate({
       where: {

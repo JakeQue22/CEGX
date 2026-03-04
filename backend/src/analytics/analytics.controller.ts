@@ -52,6 +52,12 @@ export class AnalyticsController {
     return this.analyticsService.getMarginByProduct();
   }
 
+  @Get('procurement-intelligence')
+  @ApiOperation({ summary: 'Get procurement intelligence for marketing (supplier sourcing, category demand, lead funnel)' })
+  getProcurementIntelligence() {
+    return this.analyticsService.getProcurementIntelligence();
+  }
+
   @Get('campaign-roi')
   @ApiOperation({ summary: 'Get email campaign ROI metrics' })
   getCampaignRoi() {
