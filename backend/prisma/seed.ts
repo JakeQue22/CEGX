@@ -34,8 +34,10 @@ async function main() {
         currency: 'GBP',
         defaultVatPercent: 20,
         defaultAdPercent: 0,
-        emailSenderName: 'CEGX CRM',
+        smtpSenderName: 'CEGX CRM',
+        notifyOnDealCreated: true,
         notifyOnDealWon: true,
+        notifyOnDealLost: true,
         notifyOnFollowUpDue: true,
       },
     });

@@ -47,8 +47,8 @@ export class EmailService {
       const transporter = await this.getTransporter();
       const settings = await this.prisma.companySettings.findFirst();
 
-      const from = settings?.emailSenderName && settings?.smtpUser
-        ? `"${settings.emailSenderName}" <${settings.smtpUser}>`
+      const from = settings?.smtpSenderName && settings?.smtpUser
+        ? `"${settings.smtpSenderName}" <${settings.smtpUser}>`
         : settings?.smtpUser ?? process.env.SMTP_USER ?? '';
 
       await transporter.sendMail({
