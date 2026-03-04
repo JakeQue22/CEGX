@@ -73,8 +73,8 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
         <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
           <dl className="grid grid-cols-2 gap-5">
             {[
-              { label: 'Email', value: supplier.contactEmail ?? '—' },
-              { label: 'Phone', value: supplier.contactPhone ?? '—' },
+              { label: 'Contact Email', value: supplier.contactEmail ?? '—' },
+              { label: 'Contact Phone', value: supplier.contactPhone ?? '—' },
               { label: 'Country', value: supplier.country ?? '—' },
               { label: 'Rating', value: supplier.rating != null ? `${supplier.rating}/5 ★` : '—' },
             ].map(({ label, value }) => (
