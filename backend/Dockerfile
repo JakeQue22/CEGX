@@ -45,4 +45,4 @@ EXPOSE 3003
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD wget -qO- http://localhost:3003/health || exit 1
 
-CMD ["sh", "-c", "npx prisma migrate deploy && node prisma/seed.js && node dist/main"]
+CMD ["sh", "-c", "npx prisma db push --skip-generate && node prisma/seed.js && node dist/main"]
