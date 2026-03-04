@@ -41,5 +41,8 @@ frontend/out/
 # NestJS build
 backend/dist/
 
+# Compiled seed (generated during Docker build)
+backend/prisma/seed.js
+
 # Coverage
 coverage/
