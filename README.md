@@ -196,6 +196,15 @@ npm run dev
 
 > ⚠️ **Change the default password immediately in production.**
 
+### Reset Password via CLI
+
+If you can't login, reset the admin password from the command line:
+
+```bash
+# Using Docker (both arguments required)
+docker exec -it cegx_backend node prisma/reset-password.js admin@cegx.co.uk NewPassword123
+```
+
 ---
 
 ## 🔑 Environment Variables
