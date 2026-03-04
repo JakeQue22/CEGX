@@ -6,38 +6,92 @@ export class AnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getDashboard() {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
     const [
-      totalDeals,
+      openDealsCount,
+      monthlyAgg,
+      dealsByStageRaw,
       wonDeals,
-      lostDeals,
-      openDeals,
-      totalRevenue,
-      totalGrossProfit,
-      pendingFollowUps,
-      activeCampaigns,
+      upcomingFollowUpsRaw,
     ] = await Promise.all([
-      this.prisma.deal.count(),
-      this.prisma.deal.count({ where: { status: 'WON' } }),
-      this.prisma.deal.count({ where: { status: 'LOST' } }),
       this.prisma.deal.count({ where: { status: 'OPEN' } }),
-      this.prisma.deal.aggregate({ where: { status: 'WON' }, _sum: { revenue: true } }),
-      this.prisma.deal.aggregate({ where: { status: 'WON' }, _sum: { grossProfit: true } }),
-      this.prisma.followUp.count({ where: { isCompleted: false } }),
-      this.prisma.emailCampaign.count({ where: { status: { in: ['DRAFT', 'SCHEDULED'] } } }),
+      this.prisma.deal.aggregate({
+        where: { status: 'WON', closedAt: { gte: startOfMonth } },
+        _sum: { revenue: true, grossProfit: true, vat: true },
+      }),
+      this.prisma.deal.groupBy({
+        by: ['stageId'],
+        _count: { id: true },
+        _sum: { revenue: true },
+      }),
+      this.prisma.deal.findMany({
+        where: { status: 'WON', closedAt: { not: null } },
+        select: { revenue: true, grossProfit: true, closedAt: true },
+        orderBy: { closedAt: 'asc' },
+      }),
+      this.prisma.followUp.findMany({
+        where: { isCompleted: false },
+        orderBy: { dueAt: 'asc' },
+        take: 10,
+        include: {
+          deal: { select: { id: true, title: true } },
+        },
+      }),
     ]);
 
-    const winRate = totalDeals > 0 ? ((wonDeals / totalDeals) * 100).toFixed(2) : '0.00';
+    // Resolve stage names for dealsByStage
+    const stageIds = dealsByStageRaw.map((g) => g.stageId);
+    const stages = stageIds.length > 0
+      ? await this.prisma.pipelineStage.findMany({
+          where: { id: { in: stageIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const stageMap = new Map(stages.map((s) => [s.id, s.name]));
+
+    const dealsByStage = dealsByStageRaw.map((g) => ({
+      stage: stageMap.get(g.stageId) ?? 'Unknown',
+      count: g._count.id,
+      value: Number(g._sum.revenue ?? 0),
+    }));
+
+    // Build profitOverTime from recent won deals
+    const monthlyMap = new Map<string, { revenue: number; profit: number }>();
+    for (const d of wonDeals) {
+      if (!d.closedAt) continue;
+      const month = d.closedAt.toISOString().slice(0, 7);
+      const entry = monthlyMap.get(month) ?? { revenue: 0, profit: 0 };
+      entry.revenue += Number(d.revenue);
+      entry.profit += Number(d.grossProfit);
+      monthlyMap.set(month, entry);
+    }
+    const profitOverTime = Array.from(monthlyMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-12)
+      .map(([month, data]) => ({ month, ...data }));
+
+    // Map follow-ups to the shape the frontend expects
+    const upcomingFollowUps = upcomingFollowUpsRaw.map((fu) => ({
+      id: fu.id,
+      dealId: fu.dealId,
+      deal: fu.deal,
+      title: fu.note ?? 'Follow-up',
+      dueDate: fu.dueAt.toISOString(),
+      isCompleted: fu.isCompleted,
+      createdAt: fu.createdAt.toISOString(),
+      updatedAt: fu.updatedAt.toISOString(),
+    }));
 
     return {
-      totalDeals,
-      wonDeals,
-      lostDeals,
-      openDeals,
-      winRate: parseFloat(winRate),
-      totalRevenue: Number(totalRevenue._sum.revenue ?? 0),
-      totalGrossProfit: Number(totalGrossProfit._sum.grossProfit ?? 0),
-      pendingFollowUps,
-      activeCampaigns,
+      monthlyRevenue: Number(monthlyAgg._sum.revenue ?? 0),
+      monthlyProfit: Number(monthlyAgg._sum.grossProfit ?? 0),
+      openDealsCount,
+      vatCollected: Number(monthlyAgg._sum.vat ?? 0),
+      dealsByStage,
+      profitOverTime,
+      upcomingFollowUps,
     };
   }
 
