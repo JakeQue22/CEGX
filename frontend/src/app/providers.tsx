@@ -42,7 +42,7 @@ function BrandColorInjector() {
 }
 
 export default function Providers({ children }: { children: React.ReactNode }) {
-  const queryClient = getQueryClient();
+  const [queryClient] = useState(getQueryClient);
 
   return (
     <QueryClientProvider client={queryClient}>
