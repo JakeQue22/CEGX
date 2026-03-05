@@ -8,6 +8,11 @@ echo "🚀 CEGX Backend starting..."
 # 1. Fresh database          → migrate deploy creates all tables
 # 2. Existing (db push) DB   → baseline the init migration, then deploy
 # 3. Already-migrated DB     → deploy any new pending migrations
+#
+# NOTE: `docker-compose build --no-cache` only rebuilds images — it does NOT
+# affect the postgres_data volume. Data is only lost if you run:
+#   docker-compose down -v   (the -v flag removes named volumes!)
+# To safely rebuild: docker-compose build --no-cache && docker-compose up -d
 # ---------------------------------------------------------------------------
 
 # Check if the database already has tables but no _prisma_migrations table
@@ -37,7 +42,11 @@ if [ "$HAS_TABLES" = "yes" ] && [ "$HAS_MIGRATIONS" = "no" ]; then
   echo "✅ Baseline complete"
 fi
 
-# Apply any pending migrations
+if [ "$HAS_TABLES" = "yes" ] && [ "$HAS_MIGRATIONS" = "yes" ]; then
+  echo "✅ Existing migrated database detected — applying any new migrations only"
+fi
+
+# Apply any pending migrations (safe — never drops existing data)
 echo "🔄 Running database migrations..."
 npx prisma migrate deploy 2>&1
 echo "✅ Migrations complete"

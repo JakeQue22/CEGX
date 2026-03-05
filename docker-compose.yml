@@ -1,5 +1,11 @@
 version: '3.9'
 
+# ⚠️  DATABASE PERSISTENCE: Data lives in the `postgres_data` named volume.
+# - `docker-compose build --no-cache` → SAFE (only rebuilds images)
+# - `docker-compose down` → SAFE (stops containers, keeps volumes)
+# - `docker-compose down -v` → DESTROYS DATA (removes named volumes!)
+# To safely rebuild: docker-compose build --no-cache && docker-compose up -d
+
 networks:
   cegx_net:
     driver: bridge
