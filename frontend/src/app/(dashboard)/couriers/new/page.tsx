@@ -41,6 +41,7 @@ export default function NewCourierPage() {
     onSuccess: async (res) => {
       const courierId = res.data.id;
       // Create pricing tiers if any
+      const pricingErrors: string[] = [];
       for (const p of pricings) {
         try {
           await axiosInstance.post(`/couriers/${courierId}/pricings`, {
@@ -50,7 +51,13 @@ export default function NewCourierPage() {
             maxQuantity: p.maxQuantity ? Number(p.maxQuantity) : undefined,
             price: p.price,
           });
-        } catch (_) { /* ignore pricing creation errors */ }
+        } catch (err: unknown) {
+          const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to save pricing';
+          pricingErrors.push(`${p.label}: ${msg}`);
+        }
+      }
+      if (pricingErrors.length > 0) {
+        setError(`Courier created but some pricing options failed: ${pricingErrors.join(', ')}`);
       }
       router.push(`/couriers/${courierId}`);
     },

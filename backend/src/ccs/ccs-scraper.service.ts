@@ -142,10 +142,6 @@ export class CcsScraperService {
 
         this.logger.log(`Page ${page}: found ${foundOnPage} new frameworks`);
 
-        // Check if there's a next page link
-        const hasNextPage = $('a[rel="next"], .pagination a:contains("Next"), a:contains("Next")').length > 0
-          || foundOnPage > 0;
-
         // If no new frameworks found on this page, we've reached the end
         if (foundOnPage === 0) {
           this.logger.log(`No new frameworks on page ${page}, stopping pagination`);
