@@ -35,10 +35,10 @@ export default function LinkedInAccountsPage() {
       const email = data?.email ?? 'account';
       const stats = data?.stats;
       const statsInfo = stats
-        ? ` — ${stats.connections} connections, ${stats.messages} messages`
+        ? ` (${stats.connections} connections, ${stats.messages} messages in database)`
         : '';
-      setSyncMessage(`Sync started for ${email}${statsInfo}`);
-      setTimeout(() => setSyncMessage(null), 5000);
+      setSyncMessage(`Sync queued for ${email}${statsInfo}. Stale pending connections will be marked as expired.`);
+      setTimeout(() => setSyncMessage(null), 8000);
     },
     onError: () => {
       setSyncMessage('Failed to sync — please try again');

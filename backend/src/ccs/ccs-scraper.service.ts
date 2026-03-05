@@ -59,6 +59,10 @@ export class CcsScraperService {
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
       'Accept-Language': 'en-GB,en;q=0.9',
     };
+    const fetchOptions: RequestInit = {
+      headers,
+      signal: AbortSignal.timeout(15000),
+    };
 
     let fetchUrl = url;
 
@@ -70,7 +74,7 @@ export class CcsScraperService {
       // set HTTPS_PROXY / HTTP_PROXY environment variables for system-wide proxy routing,
       // or use a proxy agent library like undici ProxyAgent.
       try {
-        const response = await fetch(fetchUrl, { headers });
+        const response = await fetch(fetchUrl, fetchOptions);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         return response.text();
       } catch (err) {
@@ -78,13 +82,9 @@ export class CcsScraperService {
       }
     }
 
-    const response = await fetch(fetchUrl, { headers });
+    const response = await fetch(fetchUrl, fetchOptions);
     if (!response.ok) throw new Error(`HTTP ${response.status} fetching ${url}`);
-    const text = await response.text();
-    if (!text || text.length < 100) {
-      throw new Error(`Empty or very short response (${text.length} bytes) from ${url}`);
-    }
-    return text;
+    return response.text();
   }
 
   /**
@@ -476,6 +476,7 @@ export class CcsScraperService {
           'Accept': 'application/json',
         },
         body: JSON.stringify(searchPayload),
+        signal: AbortSignal.timeout(30000),
       });
 
       if (!response.ok) {
