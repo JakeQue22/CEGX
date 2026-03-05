@@ -100,6 +100,7 @@ export class CcsScraperService {
     const seenRefs = new Set<string>();
     let page = 1;
     const maxPages = 20; // safety limit
+    const maxConsecutiveFailures = 2;
     let consecutiveFailures = 0;
 
     while (page <= maxPages) {
@@ -118,7 +119,7 @@ export class CcsScraperService {
         // If page 1 fails, throw — we can't do anything without it
         if (page === 1) throw err;
         // If multiple consecutive pages fail, stop trying
-        if (consecutiveFailures >= 2) {
+        if (consecutiveFailures >= maxConsecutiveFailures) {
           this.logger.warn(`${consecutiveFailures} consecutive page failures, stopping pagination`);
           break;
         }

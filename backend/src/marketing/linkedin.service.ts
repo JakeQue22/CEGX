@@ -198,9 +198,6 @@ export class LinkedInService {
       where: { id: accountId },
       include: {
         _count: { select: { connections: true, messages: true } },
-        connections: {
-          select: { id: true, status: true, createdAt: true },
-        },
       },
     });
     if (!account) throw new NotFoundException('Account not found');
@@ -211,24 +208,26 @@ export class LinkedInService {
       data: { lastSyncAt: new Date() },
     });
 
-    // Mark stale pending connections (older than 30 days) as expired
+    // Mark stale pending connections (older than 30 days) as expired in a single query
     const STALE_THRESHOLD_DAYS = 30;
     const cutoffDate = new Date(Date.now() - STALE_THRESHOLD_DAYS * 24 * 60 * 60 * 1000);
-    const staleConnections = account.connections.filter(
-      (c) => c.status === 'PENDING' && c.createdAt < cutoffDate,
-    );
-    for (const conn of staleConnections) {
-      await this.prisma.linkedInConnection.update({
-        where: { id: conn.id },
-        data: { status: 'EXPIRED' },
-      });
-    }
+    const expireResult = await this.prisma.linkedInConnection.updateMany({
+      where: {
+        accountId,
+        status: 'PENDING',
+        createdAt: { lt: cutoffDate },
+      },
+      data: { status: 'EXPIRED' },
+    });
 
-    const activeConnections = account.connections.filter((c) => c.status === 'CONNECTED').length;
-    const pendingConnections = account.connections.filter((c) => c.status === 'PENDING').length;
+    // Get connection counts by status
+    const [activeCount, pendingCount] = await Promise.all([
+      this.prisma.linkedInConnection.count({ where: { accountId, status: 'CONNECTED' } }),
+      this.prisma.linkedInConnection.count({ where: { accountId, status: 'PENDING' } }),
+    ]);
 
     this.logger.log(
-      `LinkedIn sync for ${account.email}: ${account._count.connections} connections, ${account._count.messages} messages, ${staleConnections.length} expired`,
+      `LinkedIn sync for ${account.email}: ${account._count.connections} connections, ${account._count.messages} messages, ${expireResult.count} expired`,
     );
 
     return {
@@ -239,9 +238,9 @@ export class LinkedInService {
       stats: {
         connections: account._count.connections,
         messages: account._count.messages,
-        activeConnections,
-        pendingConnections,
-        expiredThisSync: staleConnections.length,
+        activeConnections: activeCount,
+        pendingConnections: pendingCount,
+        expiredThisSync: expireResult.count,
       },
       note: 'Automated LinkedIn data import requires browser automation (Puppeteer/Playwright) which is not yet configured. Add connections manually via the Connect feature or import them through the API.',
     };
