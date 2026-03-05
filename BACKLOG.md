@@ -56,6 +56,7 @@
 - [x] Rename "Place Order" → "Request Order" throughout portal
 - [x] Fix "Failed to place order" — improved error reporting + removed stale field sends
 - [x] Create this `BACKLOG.md` for task queue management
+- [x] Users table editable by admin — listing page, detail/edit page, new user page, sidebar nav item
 
 ---
 
