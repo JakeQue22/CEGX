@@ -49,6 +49,12 @@ model CompanySettings {
   logoUrl              String?
   primaryColor         String   @default("#2563EB")
   currency             String   @default("GBP")
+  companyAddress       String?
+  companyPhone         String?
+  companyEmail         String?
+  companyWebsite       String?
+  vatNumber            String?
+  companyRegNumber     String?
   defaultVatPercent    Decimal  @default(20) @db.Decimal(5, 2)
   defaultAdPercent     Decimal  @default(0) @db.Decimal(5, 2)
   smtpSenderName       String   @default("CEGX CRM") @map("emailSenderName")

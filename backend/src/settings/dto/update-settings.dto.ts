@@ -35,6 +35,36 @@ export class UpdateSettingsDto {
   @IsString()
   currency?: string;
 
+  @ApiPropertyOptional({ description: 'Company address for invoices' })
+  @IsOptional()
+  @IsString()
+  companyAddress?: string;
+
+  @ApiPropertyOptional({ description: 'Company phone number' })
+  @IsOptional()
+  @IsString()
+  companyPhone?: string;
+
+  @ApiPropertyOptional({ description: 'Company email address' })
+  @IsOptional()
+  @IsString()
+  companyEmail?: string;
+
+  @ApiPropertyOptional({ description: 'Company website' })
+  @IsOptional()
+  @IsString()
+  companyWebsite?: string;
+
+  @ApiPropertyOptional({ description: 'VAT registration number' })
+  @IsOptional()
+  @IsString()
+  vatNumber?: string;
+
+  @ApiPropertyOptional({ description: 'Company registration number' })
+  @IsOptional()
+  @IsString()
+  companyRegNumber?: string;
+
   @ApiPropertyOptional({ minimum: 0, maximum: 100 })
   @IsOptional()
   @IsNumber()

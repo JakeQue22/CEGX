@@ -166,6 +166,19 @@ export default function SettingsPage() {
             </div>
           </div>
           <Input label="Currency" value={merged.currency ?? 'GBP'} onChange={setC('currency')} placeholder="GBP" />
+
+          <h2 className="text-base font-semibold text-gray-900 pt-4">Invoice / Business Details</h2>
+          <Input label="Company Address" value={merged.companyAddress ?? ''} onChange={setC('companyAddress')} placeholder="123 Business St, London, EC1A 1BB" />
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="Company Phone" value={merged.companyPhone ?? ''} onChange={setC('companyPhone')} placeholder="+44 20 1234 5678" />
+            <Input label="Company Email" type="email" value={merged.companyEmail ?? ''} onChange={setC('companyEmail')} placeholder="info@company.com" />
+          </div>
+          <Input label="Company Website" type="url" value={merged.companyWebsite ?? ''} onChange={setC('companyWebsite')} placeholder="https://www.company.com" />
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="VAT Number" value={merged.vatNumber ?? ''} onChange={setC('vatNumber')} placeholder="GB 123 4567 89" />
+            <Input label="Company Reg. Number" value={merged.companyRegNumber ?? ''} onChange={setC('companyRegNumber')} placeholder="12345678" />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <Input
               label="Default VAT %"

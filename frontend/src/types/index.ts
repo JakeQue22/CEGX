@@ -40,6 +40,12 @@ export interface CompanySettings {
   logoUrl?: string;
   primaryColor: string;
   currency: string;
+  companyAddress?: string;
+  companyPhone?: string;
+  companyEmail?: string;
+  companyWebsite?: string;
+  vatNumber?: string;
+  companyRegNumber?: string;
   defaultVatPercent: number;
   defaultAdPercent: number;
   smtpHost?: string;

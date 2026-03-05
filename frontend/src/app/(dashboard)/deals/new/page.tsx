@@ -26,6 +26,8 @@ export default function NewDealPage() {
   const [stageId, setStageId] = useState('');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
+  const [generateInvoice, setGenerateInvoice] = useState(false);
+  const [sendInvoiceEmail, setSendInvoiceEmail] = useState(false);
 
   const { data: suppliers = [] } = useQuery<Supplier[]>({
     queryKey: ['suppliers-list'],
@@ -187,6 +189,33 @@ export default function NewDealPage() {
               className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Any additional notes…"
             />
+          </div>
+
+          {/* Invoice Options */}
+          <div className="pt-2 space-y-3 border-t border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-900 pt-2">Invoice Options</h3>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={generateInvoice}
+                onChange={(e) => {
+                  setGenerateInvoice(e.target.checked);
+                  if (!e.target.checked) setSendInvoiceEmail(false);
+                }}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">Generate invoice for this deal</span>
+            </label>
+            <label className={`flex items-center gap-2 ${generateInvoice ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
+              <input
+                type="checkbox"
+                checked={sendInvoiceEmail}
+                disabled={!generateInvoice}
+                onChange={(e) => setSendInvoiceEmail(e.target.checked)}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+              />
+              <span className="text-sm text-gray-700">Send invoice via email to customer</span>
+            </label>
           </div>
         </div>
 
