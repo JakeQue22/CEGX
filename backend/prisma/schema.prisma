@@ -18,14 +18,17 @@ enum Role {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String
-  role      Role     @default(VIEWER)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  email      String   @unique
+  password   String
+  name       String
+  phone      String?
+  title      String?
+  department String?
+  role       Role     @default(VIEWER)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   deals            Deal[]
   notifications    Notification[]
@@ -34,6 +37,7 @@ model User {
   emailCampaigns   EmailCampaign[]
   dealStageHistory DealStageHistory[]
   marketingCampaigns MarketingCampaign[]
+  suppliersAsSalesPerson Supplier[] @relation("SalesPerson")
 
   @@map("users")
 }
@@ -62,16 +66,19 @@ model CompanySettings {
 }
 
 model Supplier {
-  id           String   @id @default(cuid())
-  name         String
-  contactEmail String?
-  contactPhone String?
-  country      String?
-  rating       Decimal? @db.Decimal(3, 1)
-  isActive     Boolean  @default(true)
-  notes        String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String   @id @default(cuid())
+  name           String
+  contactName    String?
+  contactEmail   String?
+  contactPhone   String?
+  country        String?
+  rating         Decimal? @db.Decimal(3, 1)
+  isActive       Boolean  @default(true)
+  notes          String?
+  salesPersonId  String?
+  salesPerson    User?    @relation("SalesPerson", fields: [salesPersonId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   products  Product[]
   deals     Deal[]
@@ -93,20 +100,21 @@ model ProductCategory {
 }
 
 model Product {
-  id            String          @id @default(cuid())
-  sku           String          @unique
-  name          String
-  description   String?
-  categoryId    String?
-  category      ProductCategory? @relation(fields: [categoryId], references: [id])
-  supplierId    String?
-  supplier      Supplier?        @relation(fields: [supplierId], references: [id])
-  baseCostPrice Decimal         @db.Decimal(12, 2)
-  vatPercent    Decimal         @default(20) @db.Decimal(5, 2)
-  adPercent     Decimal         @default(0) @db.Decimal(5, 2)
-  isArchived    Boolean         @default(false)
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  id              String          @id @default(cuid())
+  sku             String          @unique
+  name            String
+  description     String?
+  categoryId      String?
+  category        ProductCategory? @relation(fields: [categoryId], references: [id])
+  supplierId      String?
+  supplier        Supplier?        @relation(fields: [supplierId], references: [id])
+  baseCostPrice   Decimal         @db.Decimal(12, 2)
+  vatPercent      Decimal         @default(20) @db.Decimal(5, 2)
+  adPercent       Decimal         @default(0) @db.Decimal(5, 2)
+  minOrderQuantity Int            @default(1)
+  isArchived      Boolean         @default(false)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
   bulkPricings BulkPricing[]
   deals        Deal[]
@@ -120,6 +128,8 @@ model BulkPricing {
   product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   minQuantity   Int
   bulkCostPrice Decimal  @db.Decimal(12, 2)
+  discountType  String   @default("FIXED_PRICE")
+  discountValue Decimal  @default(0) @db.Decimal(12, 2)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -153,8 +163,11 @@ model Deal {
   assignedUser         User?         @relation(fields: [assignedUserId], references: [id])
   stageId              String
   stage                PipelineStage @relation(fields: [stageId], references: [id])
+  courierId            String?
+  courier              Courier?      @relation(fields: [courierId], references: [id])
   quantity             Int           @default(1)
   salePrice            Decimal       @db.Decimal(12, 2)
+  shippingCost         Decimal       @default(0) @db.Decimal(12, 2)
   costPriceSnapshot    Decimal       @default(0) @db.Decimal(12, 2)
   adPercentSnapshot    Decimal       @default(0) @db.Decimal(5, 2)
   vatPercentSnapshot   Decimal       @default(20) @db.Decimal(5, 2)
@@ -266,6 +279,69 @@ model ActivityLog {
   createdAt  DateTime @default(now())
 
   @@map("activity_logs")
+}
+
+// =============================================================================
+// Couriers
+// =============================================================================
+
+model Courier {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  contactName String?
+  email       String?
+  phone       String?
+  website     String?
+  trackingUrl String?
+  isActive    Boolean  @default(true)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  deals          Deal[]
+  customerOrders CustomerOrder[]
+
+  @@map("couriers")
+}
+
+// =============================================================================
+// Customers & Customer Orders
+// =============================================================================
+
+model Customer {
+  id           String   @id @default(cuid())
+  companyName  String
+  contactName  String?
+  email        String   @unique
+  password     String
+  phone        String?
+  notes        String?  @db.Text
+  categoryIds  Json?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  orders CustomerOrder[]
+
+  @@map("customers")
+}
+
+model CustomerOrder {
+  id               String   @id @default(cuid())
+  customerId       String
+  customer         Customer @relation(fields: [customerId], references: [id])
+  productId        String?
+  productName      String
+  quantity         Int
+  deliveryLocation String?
+  courierId        String?
+  courier          Courier? @relation(fields: [courierId], references: [id])
+  status           String   @default("PENDING")
+  notes            String?  @db.Text
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("customer_orders")
 }
 
 // =============================================================================

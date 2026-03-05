@@ -22,6 +22,7 @@ import { AutomationsModule } from './automations/automations.module';
 import { HealthModule } from './health/health.module';
 import { MarketingModule } from './marketing/marketing.module';
 import { GrokModule } from './grok/grok.module';
+import { CustomerOrdersModule } from './customer-orders/customer-orders.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { GrokModule } from './grok/grok.module';
     HealthModule,
     MarketingModule,
     GrokModule,
+    CustomerOrdersModule,
   ],
 })
 export class AppModule {}
