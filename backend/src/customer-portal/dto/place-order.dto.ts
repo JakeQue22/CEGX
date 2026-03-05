@@ -16,10 +16,35 @@ export class PlaceOrderDto {
   @Min(1)
   quantity: number;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: 'Legacy single-line delivery location' })
   @IsOptional()
   @IsString()
   deliveryLocation?: string;
+
+  @ApiPropertyOptional({ description: 'Street address line 1' })
+  @IsOptional()
+  @IsString()
+  deliveryStreet?: string;
+
+  @ApiPropertyOptional({ description: 'Street address line 2' })
+  @IsOptional()
+  @IsString()
+  deliveryStreet2?: string;
+
+  @ApiPropertyOptional({ description: 'City' })
+  @IsOptional()
+  @IsString()
+  deliveryCity?: string;
+
+  @ApiPropertyOptional({ description: 'County' })
+  @IsOptional()
+  @IsString()
+  deliveryCounty?: string;
+
+  @ApiPropertyOptional({ description: 'Postcode' })
+  @IsOptional()
+  @IsString()
+  deliveryPostcode?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

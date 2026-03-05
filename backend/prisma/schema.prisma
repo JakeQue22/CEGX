@@ -344,6 +344,11 @@ model CustomerOrder {
   productName      String
   quantity         Int
   deliveryLocation String?
+  deliveryStreet   String?
+  deliveryStreet2  String?
+  deliveryCity     String?
+  deliveryCounty   String?
+  deliveryPostcode String?
   courierId        String?
   courier          Courier? @relation(fields: [courierId], references: [id])
   status           String   @default("PENDING")

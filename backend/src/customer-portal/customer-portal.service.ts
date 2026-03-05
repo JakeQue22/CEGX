@@ -53,7 +53,11 @@ export class CustomerPortalService {
   async getProducts() {
     return this.prisma.product.findMany({
       where: { isArchived: false },
-      include: { category: true, supplier: true },
+      include: {
+        category: true,
+        supplier: true,
+        bulkPricings: { orderBy: { minQuantity: 'asc' } },
+      },
     });
   }
 
