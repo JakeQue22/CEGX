@@ -45,6 +45,11 @@ export class CreateLeadDto {
   @IsOptional()
   @IsString()
   campaignId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  pipelineStageId?: string;
 }
 
 export class UpdateLeadDto {
@@ -87,6 +92,11 @@ export class UpdateLeadDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  pipelineStageId?: string;
 }
 
 export class CreateOutreachEmailDto {

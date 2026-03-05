@@ -2,14 +2,25 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import axiosInstance from '@/lib/axios';
 import { MarketingLead } from '@/types';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
+const statusVariant: Record<string, 'success' | 'warning' | 'info' | 'neutral'> = {
+  NEW: 'info',
+  CONTACTED: 'warning',
+  RESPONDED: 'success',
+  QUALIFIED: 'success',
+  CONVERTED: 'neutral',
+};
+
 export default function MarketingLeadsPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [showAddForm, setShowAddForm] = useState(false);
+  const [search, setSearch] = useState('');
   const [newLead, setNewLead] = useState({
     companyName: '', contactName: '', contactEmail: '', contactPhone: '', website: '', industry: '', source: '', notes: '',
   });
@@ -29,7 +40,14 @@ export default function MarketingLeadsPage() {
     },
   });
 
-  const leads = data ?? [];
+  const allLeads = data ?? [];
+  const leads = allLeads.filter((l) =>
+    !search ||
+    l.companyName.toLowerCase().includes(search.toLowerCase()) ||
+    (l.contactName ?? '').toLowerCase().includes(search.toLowerCase()) ||
+    (l.contactEmail ?? '').toLowerCase().includes(search.toLowerCase()) ||
+    (l.industry ?? '').toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="space-y-5">
@@ -48,6 +66,17 @@ export default function MarketingLeadsPage() {
           </svg>
           Add Lead
         </button>
+      </div>
+
+      {/* Search */}
+      <div className="flex flex-wrap gap-3">
+        <input
+          type="text"
+          placeholder="Search leads…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
       </div>
 
       {/* Add Lead Form */}
@@ -82,11 +111,20 @@ export default function MarketingLeadsPage() {
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
           {leads.map((lead) => (
-            <div key={lead.id} className="px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition">
+            <div
+              key={lead.id}
+              onClick={() => router.push(`/marketing/leads/${lead.id}`)}
+              className="px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition cursor-pointer"
+            >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="font-medium text-gray-900">{lead.companyName}</p>
-                  <Badge label={lead.status} />
+                  <Badge label={lead.status} variant={statusVariant[lead.status] ?? 'neutral'} />
+                  {lead.pipelineStage && (
+                    <span className="text-xs bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full">
+                      {lead.pipelineStage.name}
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm text-gray-500 mt-0.5">
                   {lead.contactName || 'No contact'} • {lead.contactEmail || 'No email'} {lead.industry ? `• ${lead.industry}` : ''}
@@ -97,6 +135,9 @@ export default function MarketingLeadsPage() {
                 <span>{lead._count?.outreachEmails ?? 0} emails</span>
                 <span>•</span>
                 <span>{new Date(lead.createdAt).toLocaleDateString('en-GB')}</span>
+                <svg className="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
               </div>
             </div>
           ))}

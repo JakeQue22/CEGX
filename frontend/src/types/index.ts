@@ -381,6 +381,8 @@ export interface MarketingLead {
   id: string;
   campaignId?: string;
   campaign?: { id: string; name: string };
+  pipelineStageId?: string;
+  pipelineStage?: { id: string; name: string; color?: string };
   companyName: string;
   contactName?: string;
   contactEmail?: string;
@@ -511,4 +513,68 @@ export interface SupplierMarginData {
   totalRevenue: number;
   totalGrossProfit: number;
   avgProfitMarginPercent: number;
+}
+
+// ─── CCS Framework Types ──────────────────────────────────────────────────────
+
+export type CcsFrameworkStatus = 'LIVE' | 'EXPIRED' | 'UPCOMING';
+export type CcsOpportunityStatus = 'OPEN' | 'CLOSED' | 'AWARDED' | 'CANCELLED';
+export type CcsBidStatus = 'NOT_BIDDING' | 'PREPARING' | 'SUBMITTED' | 'WON' | 'LOST';
+
+export interface CcsFramework {
+  id: string;
+  reference: string;
+  title: string;
+  description?: string;
+  category: string;
+  status: CcsFrameworkStatus;
+  startDate?: string;
+  endDate?: string;
+  websiteUrl?: string;
+  maxValue?: number;
+  lots?: CcsLot[];
+  opportunities?: CcsOpportunity[];
+  _count?: { lots: number; opportunities: number };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CcsLot {
+  id: string;
+  frameworkId: string;
+  framework?: { id: string; reference: string; title: string };
+  lotNumber: string;
+  title: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CcsOpportunity {
+  id: string;
+  frameworkId?: string;
+  framework?: { id: string; reference: string; title: string; category?: string };
+  title: string;
+  description?: string;
+  buyerName?: string;
+  status: CcsOpportunityStatus;
+  publishedDate?: string;
+  closingDate?: string;
+  value?: number;
+  region?: string;
+  category?: string;
+  noticeUrl?: string;
+  notes?: string;
+  bidStatus: CcsBidStatus;
+  bidDeadline?: string;
+  bidValue?: number;
+  assignedUserId?: string;
+  assignedUser?: { id: string; name: string; email?: string };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CcsStats {
+  frameworks: { total: number; live: number; expired: number; upcoming: number };
+  opportunities: { total: number; open: number; bidding: number };
 }

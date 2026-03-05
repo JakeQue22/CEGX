@@ -38,6 +38,7 @@ model User {
   dealStageHistory DealStageHistory[]
   marketingCampaigns MarketingCampaign[]
   suppliersAsSalesPerson Supplier[] @relation("SalesPerson")
+  ccsOpportunities CcsOpportunity[] @relation("CcsOpportunityAssignedUser")
 
   @@map("users")
 }
@@ -156,6 +157,7 @@ model PipelineStage {
   updatedAt DateTime @updatedAt
 
   deals              Deal[]
+  leads              MarketingLead[]
   historyFrom        DealStageHistory[] @relation("FromStage")
   historyTo          DealStageHistory[] @relation("ToStage")
 
@@ -443,21 +445,23 @@ model MarketingCampaign {
 }
 
 model MarketingLead {
-  id            String             @id @default(cuid())
-  campaignId    String?
-  campaign      MarketingCampaign? @relation(fields: [campaignId], references: [id])
-  companyName   String
-  contactName   String?
-  contactEmail  String?
-  contactPhone  String?
-  website       String?
-  industry      String?
-  source        String?
-  notes         String?            @db.Text
-  status        String             @default("NEW")
-  metadata      Json?
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
+  id              String             @id @default(cuid())
+  campaignId      String?
+  campaign        MarketingCampaign? @relation(fields: [campaignId], references: [id])
+  pipelineStageId String?
+  pipelineStage   PipelineStage?     @relation(fields: [pipelineStageId], references: [id])
+  companyName     String
+  contactName     String?
+  contactEmail    String?
+  contactPhone    String?
+  website         String?
+  industry        String?
+  source          String?
+  notes           String?            @db.Text
+  status          String             @default("NEW")
+  metadata        Json?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 
   outreachEmails OutreachEmail[]
 
@@ -514,4 +518,67 @@ model AIConversation {
   createdAt  DateTime @default(now())
 
   @@map("ai_conversations")
+}
+
+// =============================================================================
+// Crown Commercial Services (CCS) Framework Integration
+// =============================================================================
+
+model CcsFramework {
+  id            String    @id @default(cuid())
+  reference     String    @unique
+  title         String
+  description   String?   @db.Text
+  category      String
+  status        String    @default("LIVE")
+  startDate     DateTime?
+  endDate       DateTime?
+  websiteUrl    String?
+  maxValue      Decimal?  @db.Decimal(14, 2)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  lots          CcsLot[]
+  opportunities CcsOpportunity[]
+
+  @@map("ccs_frameworks")
+}
+
+model CcsLot {
+  id           String       @id @default(cuid())
+  frameworkId  String
+  framework    CcsFramework @relation(fields: [frameworkId], references: [id], onDelete: Cascade)
+  lotNumber    String
+  title        String
+  description  String?      @db.Text
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@map("ccs_lots")
+}
+
+model CcsOpportunity {
+  id              String        @id @default(cuid())
+  frameworkId     String?
+  framework       CcsFramework? @relation(fields: [frameworkId], references: [id])
+  title           String
+  description     String?       @db.Text
+  buyerName       String?
+  status          String        @default("OPEN")
+  publishedDate   DateTime?
+  closingDate     DateTime?
+  value           Decimal?      @db.Decimal(14, 2)
+  region          String?
+  category        String?
+  noticeUrl       String?
+  notes           String?       @db.Text
+  bidStatus       String        @default("NOT_BIDDING")
+  bidDeadline     DateTime?
+  bidValue        Decimal?      @db.Decimal(14, 2)
+  assignedUserId  String?
+  assignedUser    User?         @relation("CcsOpportunityAssignedUser", fields: [assignedUserId], references: [id])
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@map("ccs_opportunities")
 }

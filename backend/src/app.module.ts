@@ -25,6 +25,7 @@ import { MarketingModule } from './marketing/marketing.module';
 import { GrokModule } from './grok/grok.module';
 import { CustomerOrdersModule } from './customer-orders/customer-orders.module';
 import { CustomerPortalModule } from './customer-portal/customer-portal.module';
+import { CcsModule } from './ccs/ccs.module';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { CustomerPortalModule } from './customer-portal/customer-portal.module';
     GrokModule,
     CustomerOrdersModule,
     CustomerPortalModule,
+    CcsModule,
   ],
 })
 export class AppModule {}

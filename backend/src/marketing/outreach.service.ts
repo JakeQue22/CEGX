@@ -32,6 +32,7 @@ export class OutreachService {
       where,
       include: {
         campaign: { select: { id: true, name: true } },
+        pipelineStage: { select: { id: true, name: true, color: true } },
         _count: { select: { outreachEmails: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -43,6 +44,7 @@ export class OutreachService {
       where: { id },
       include: {
         campaign: { select: { id: true, name: true } },
+        pipelineStage: { select: { id: true, name: true, color: true } },
         outreachEmails: { orderBy: { createdAt: 'desc' } },
       },
     });
