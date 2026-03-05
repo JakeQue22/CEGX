@@ -57,8 +57,8 @@ export default function NewUserPage() {
       department: form.department || undefined,
       role: form.role,
       password: form.password || undefined,
-      sendWelcomeEmail: form.sendWelcomeEmail || undefined,
-      sendSetPasswordEmail: form.sendSetPasswordEmail || undefined,
+      sendWelcomeEmail: form.sendWelcomeEmail ? true : undefined,
+      sendSetPasswordEmail: form.sendSetPasswordEmail ? true : undefined,
     });
   }
 
