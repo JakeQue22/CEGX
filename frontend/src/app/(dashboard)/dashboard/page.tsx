@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { GBPAmount, formatGBP } from '@/components/ui/GBPAmount';
 import { Badge } from '@/components/ui/Badge';
-import { DashboardAnalytics, FollowUp, Deal, SupplierMarginData } from '@/types';
+import { DashboardAnalytics, FollowUp, Deal, SupplierMarginData, MarketingLead } from '@/types';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid, Legend, PieChart, Pie, Cell,
@@ -47,6 +47,13 @@ export default function DashboardPage() {
     queryFn: () => axiosInstance.get('/analytics/margin-by-supplier').then((r) => r.data),
   });
 
+  const { data: recentLeads } = useQuery<MarketingLead[]>({
+    queryKey: ['recent-leads'],
+    queryFn: () =>
+      axiosInstance.get('/marketing/outreach/leads', { params: { limit: 8 } })
+        .then((r) => Array.isArray(r.data) ? r.data : r.data.data ?? []),
+  });
+
   if (isLoading) return <LoadingSpinner />;
   if (error)
     return (
@@ -66,6 +73,7 @@ export default function DashboardPage() {
   } = data ?? {};
 
   const deals = recentDeals ?? [];
+  const leads = recentLeads ?? [];
   const topSuppliers = (suppliersData ?? []).slice(0, 5);
   const totalPipelineValue = dealsByStage.reduce((a, s) => a + Number(s.value ?? 0), 0);
 
@@ -272,6 +280,41 @@ export default function DashboardPage() {
             </ul>
           )}
         </div>
+      </div>
+
+      {/* Recent Leads */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <div className="flex items-center justify-between px-5 py-4 border-b">
+          <h2 className="text-base font-semibold text-gray-900">Recent Leads</h2>
+          <Link href="/marketing/leads" className="text-sm text-blue-600 hover:underline">View all →</Link>
+        </div>
+        {leads.length === 0 ? (
+          <p className="px-5 py-8 text-center text-sm text-gray-400">No leads yet</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-100 text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  {['Company', 'Contact', 'Industry', 'Source', 'Status', 'Added'].map((h) => (
+                    <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {leads.slice(0, 8).map((lead: MarketingLead) => (
+                  <tr key={lead.id} className="hover:bg-gray-50 transition">
+                    <td className="px-4 py-2.5 font-medium text-gray-900">{lead.companyName}</td>
+                    <td className="px-4 py-2.5 text-gray-500">{lead.contactName ?? '—'}</td>
+                    <td className="px-4 py-2.5 text-gray-500">{lead.industry ?? '—'}</td>
+                    <td className="px-4 py-2.5 text-gray-500">{lead.source ?? '—'}</td>
+                    <td className="px-4 py-2.5"><Badge label={lead.status} /></td>
+                    <td className="px-4 py-2.5 text-gray-400 text-xs">{formatRelative(lead.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Pipeline Stage Breakdown */}
