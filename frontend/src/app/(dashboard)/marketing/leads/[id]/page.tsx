@@ -41,6 +41,8 @@ interface EditForm {
   pipelineStageId: string;
   productId: string;
   categoryId: string;
+  productIds: string[];
+  categoryIds: string[];
 }
 
 function buildFormFromLead(lead: MarketingLead): EditForm {
@@ -57,6 +59,8 @@ function buildFormFromLead(lead: MarketingLead): EditForm {
     pipelineStageId: lead.pipelineStageId ?? '',
     productId: lead.productId ?? '',
     categoryId: lead.categoryId ?? '',
+    productIds: (lead.productIds as string[]) ?? [],
+    categoryIds: (lead.categoryIds as string[]) ?? [],
   };
 }
 
@@ -82,14 +86,12 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
     queryKey: ['products-list'],
     queryFn: () => axiosInstance.get('/products').then((r) =>
       Array.isArray(r.data) ? r.data : r.data?.data ?? []),
-    enabled: editing,
   });
 
   const { data: categories = [] } = useQuery<ProductCategory[]>({
     queryKey: ['categories-list'],
     queryFn: () => axiosInstance.get('/categories').then((r) =>
       Array.isArray(r.data) ? r.data : []),
-    enabled: editing,
   });
 
   const updateMutation = useMutation({
@@ -141,6 +143,8 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
       pipelineStageId: form.pipelineStageId || undefined,
       productId: form.productId || undefined,
       categoryId: form.categoryId || undefined,
+      productIds: form.productIds.length > 0 ? form.productIds : undefined,
+      categoryIds: form.categoryIds.length > 0 ? form.categoryIds : undefined,
     };
     updateMutation.mutate(payload);
   };
@@ -207,6 +211,33 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
               </div>
             ))}
           </dl>
+
+          {/* Show multi-select products */}
+          {lead.productIds && (lead.productIds as string[]).length > 0 && (
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-xs text-gray-500 mb-1">Products</p>
+              <div className="flex flex-wrap gap-1.5">
+                {(lead.productIds as string[]).map((pid) => {
+                  const p = products.find((pr) => pr.id === pid);
+                  return <span key={pid} className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full">{p?.name ?? pid}</span>;
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Show multi-select categories */}
+          {lead.categoryIds && (lead.categoryIds as string[]).length > 0 && (
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-xs text-gray-500 mb-1">Categories</p>
+              <div className="flex flex-wrap gap-1.5">
+                {(lead.categoryIds as string[]).map((cid) => {
+                  const c = categories.find((cat) => cat.id === cid);
+                  return <span key={cid} className="text-xs bg-orange-50 text-orange-700 px-2 py-0.5 rounded-full">{c?.name ?? cid}</span>;
+                })}
+              </div>
+            </div>
+          )}
+
           {lead.notes && (
             <div className="mt-4 pt-4 border-t">
               <p className="text-xs text-gray-500 mb-1">Notes</p>
@@ -242,25 +273,61 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
               ]}
               onChange={(e) => updateField('pipelineStageId', e.target.value)}
             />
-            <Select
-              label="Product"
-              value={form.productId}
-              options={[
-                { value: '', label: 'No product' },
-                ...products.map((p) => ({ value: p.id, label: p.name })),
-              ]}
-              onChange={(e) => updateField('productId', e.target.value)}
-            />
-            <Select
-              label="Category"
-              value={form.categoryId}
-              options={[
-                { value: '', label: 'No category' },
-                ...categories.map((c) => ({ value: c.id, label: c.name })),
-              ]}
-              onChange={(e) => updateField('categoryId', e.target.value)}
-            />
           </div>
+
+          {/* Products - Checkboxes */}
+          {products.length > 0 && (
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-2">Products</label>
+              <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-2 space-y-1">
+                {products.map((p) => (
+                  <label key={p.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 px-2 py-1 rounded">
+                    <input
+                      type="checkbox"
+                      checked={form.productIds.includes(p.id)}
+                      onChange={(e) => {
+                        setForm((prev) => prev ? {
+                          ...prev,
+                          productIds: e.target.checked
+                            ? [...prev.productIds, p.id]
+                            : prev.productIds.filter((id) => id !== p.id),
+                        } : prev);
+                      }}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">{p.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Categories - Checkboxes */}
+          {categories.length > 0 && (
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-2">Categories</label>
+              <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-2 space-y-1">
+                {categories.map((c) => (
+                  <label key={c.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 px-2 py-1 rounded">
+                    <input
+                      type="checkbox"
+                      checked={form.categoryIds.includes(c.id)}
+                      onChange={(e) => {
+                        setForm((prev) => prev ? {
+                          ...prev,
+                          categoryIds: e.target.checked
+                            ? [...prev.categoryIds, c.id]
+                            : prev.categoryIds.filter((id) => id !== c.id),
+                        } : prev);
+                      }}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">{c.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">Notes</label>

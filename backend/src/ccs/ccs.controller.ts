@@ -52,9 +52,21 @@ export class CcsController {
   // --- Scraping ---
   @Post('scrape/sync')
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Scrape CCS website and sync frameworks into database' })
-  syncFromCcs() {
-    return this.scraperService.syncFrameworks();
+  @ApiOperation({ summary: 'Scrape CCS website and sync frameworks and opportunities into database' })
+  async syncFromCcs() {
+    const frameworkResult = await this.scraperService.syncFrameworks();
+    const opportunityResult = await this.scraperService.scrapeOpportunities();
+    return {
+      frameworks: frameworkResult,
+      opportunities: opportunityResult,
+    };
+  }
+
+  @Post('scrape/opportunities')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Scrape CCS opportunities from Contracts Finder' })
+  scrapeOpportunities() {
+    return this.scraperService.scrapeOpportunities();
   }
 
   @Post('scrape/preview')

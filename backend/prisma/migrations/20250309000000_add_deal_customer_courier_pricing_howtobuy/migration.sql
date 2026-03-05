@@ -1,7 +1,9 @@
 -- AlterTable: Add howToBuy field to CCS frameworks
 ALTER TABLE "ccs_frameworks" ADD COLUMN IF NOT EXISTS "howToBuy" TEXT;
 
--- AlterTable: Add customerId to deals
+-- AlterTable: Add multi-select fields to MarketingLead
+ALTER TABLE "marketing_leads" ADD COLUMN IF NOT EXISTS "productIds" JSONB;
+ALTER TABLE "marketing_leads" ADD COLUMN IF NOT EXISTS "categoryIds" JSONB;
 ALTER TABLE "deals" ADD COLUMN IF NOT EXISTS "customerId" TEXT;
 
 -- AddForeignKey

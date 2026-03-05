@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '@/lib/axios';
-import { Supplier, Product, PipelineStage, Courier } from '@/types';
+import { Supplier, Product, PipelineStage, Courier, Customer } from '@/types';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
@@ -18,6 +18,7 @@ export default function NewDealPage() {
   const [title, setTitle] = useState('');
   const [supplierId, setSupplierId] = useState('');
   const [productId, setProductId] = useState('');
+  const [customerId, setCustomerId] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [salePrice, setSalePrice] = useState(0);
   const [adSpend, setAdSpend] = useState(0);
@@ -28,6 +29,8 @@ export default function NewDealPage() {
   const [error, setError] = useState('');
   const [generateInvoice, setGenerateInvoice] = useState(false);
   const [sendInvoiceEmail, setSendInvoiceEmail] = useState(false);
+  const [showNewCustomer, setShowNewCustomer] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({ companyName: '', contactName: '', email: '', phone: '' });
 
   const { data: suppliers = [] } = useQuery<Supplier[]>({
     queryKey: ['suppliers-list'],
@@ -47,6 +50,23 @@ export default function NewDealPage() {
     queryKey: ['couriers-list'],
     queryFn: () => axiosInstance.get('/couriers').then((r) => Array.isArray(r.data) ? r.data : r.data.data ?? []),
   });
+
+  const { data: customers = [] } = useQuery<Customer[]>({
+    queryKey: ['customers-list'],
+    queryFn: () => axiosInstance.get('/customers').then((r) => Array.isArray(r.data) ? r.data : r.data.data ?? []),
+  });
+
+  const createCustomer = useMutation({
+    mutationFn: (data: Record<string, unknown>) => axiosInstance.post('/customers', data),
+    onSuccess: (res) => {
+      setCustomerId(res.data.id);
+      setShowNewCustomer(false);
+      setNewCustomer({ companyName: '', contactName: '', email: '', phone: '' });
+      queryClient.invalidateQueries({ queryKey: ['customers-list'] });
+    },
+  });
+
+  const queryClient = useQueryClient();
 
   const { data: stages = [] } = useQuery<PipelineStage[]>({
     queryKey: ['pipeline-stages'],
@@ -93,6 +113,7 @@ export default function NewDealPage() {
       title,
       supplierId: supplierId || undefined,
       productId: productId || undefined,
+      customerId: customerId || undefined,
       courierId: courierId || undefined,
       quantity,
       salePrice,
@@ -103,13 +124,15 @@ export default function NewDealPage() {
   }
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="max-w-5xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">New Deal</h1>
         <p className="text-sm text-gray-500 mt-1">Create a new procurement deal</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="flex gap-6">
+        {/* Left column: Deal form */}
+        <div className="flex-1 space-y-5">
         {error && (
           <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">{error}</div>
         )}
@@ -125,6 +148,52 @@ export default function NewDealPage() {
             placeholder="Select stage"
             required
           />
+
+          {/* Customer */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-sm font-medium text-gray-700">Customer (optional)</label>
+              <button type="button" onClick={() => setShowNewCustomer(!showNewCustomer)} className="text-xs text-blue-600 hover:underline">
+                {showNewCustomer ? 'Cancel' : '+ Add New'}
+              </button>
+            </div>
+            {!showNewCustomer ? (
+              <select
+                value={customerId}
+                onChange={(e) => setCustomerId(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select customer</option>
+                {customers.map((c) => (
+                  <option key={c.id} value={c.id}>{c.companyName}{c.contactName ? ` (${c.contactName})` : ''}</option>
+                ))}
+              </select>
+            ) : (
+              <div className="border border-blue-200 rounded-lg p-3 bg-blue-50 space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <input type="text" placeholder="Company Name *" value={newCustomer.companyName} onChange={(e) => setNewCustomer({ ...newCustomer, companyName: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <input type="text" placeholder="Contact Name" value={newCustomer.contactName} onChange={(e) => setNewCustomer({ ...newCustomer, contactName: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <input type="email" placeholder="Email *" value={newCustomer.email} onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <input type="tel" placeholder="Phone" value={newCustomer.phone} onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <button
+                  type="button"
+                  disabled={!newCustomer.companyName || !newCustomer.email || createCustomer.isPending}
+                  onClick={() => createCustomer.mutate({
+                    companyName: newCustomer.companyName,
+                    contactName: newCustomer.contactName || undefined,
+                    email: newCustomer.email,
+                    phone: newCustomer.phone || undefined,
+                    password: 'TempPass123!',
+                  })}
+                  className="px-3 py-1.5 text-xs font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 disabled:opacity-50"
+                >
+                  {createCustomer.isPending ? 'Creating...' : 'Create Customer'}
+                </button>
+              </div>
+            )}
+          </div>
+
           <Select
             label="Supplier (optional)"
             value={supplierId}
@@ -219,34 +288,6 @@ export default function NewDealPage() {
           </div>
         </div>
 
-        {/* Live profit preview */}
-        {salePrice > 0 && (
-          <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-xl border border-blue-100 p-6">
-            <h2 className="text-base font-semibold text-gray-900 mb-4">Profit Preview</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {[
-                { label: 'Sale Price', value: salePrice },
-                { label: 'Total Cost', value: totalCost },
-                { label: 'Ad Spend', value: adAmount },
-                { label: 'Shipping', value: shippingCost },
-                { label: `VAT (${vatPercent}%)`, value: vatAmount },
-                { label: 'Gross Profit', value: grossProfit },
-              ].map(({ label, value }) => (
-                <div key={label}>
-                  <p className="text-xs text-gray-500">{label}</p>
-                  <GBPAmount amount={value} className={`text-base font-bold ${label === 'Gross Profit' ? (grossProfit >= 0 ? 'text-green-700' : 'text-red-700') : 'text-gray-900'}`} />
-                </div>
-              ))}
-              <div>
-                <p className="text-xs text-gray-500">Margin</p>
-                <p className={`text-base font-bold ${marginPercent >= 20 ? 'text-green-700' : marginPercent >= 10 ? 'text-yellow-700' : 'text-red-700'}`}>
-                  {marginPercent.toFixed(2)}%
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="flex gap-3">
           <Button type="submit" loading={createDeal.isPending}>
             Create Deal
@@ -254,6 +295,47 @@ export default function NewDealPage() {
           <Button type="button" variant="secondary" onClick={() => router.back()}>
             Cancel
           </Button>
+        </div>
+        </div>
+
+        {/* Right column: Profit Calculator */}
+        <div className="w-80 flex-shrink-0">
+          <div className="sticky top-6 space-y-4">
+            <div className="bg-gradient-to-b from-blue-50 to-green-50 rounded-xl border border-blue-100 p-5">
+              <h2 className="text-base font-semibold text-gray-900 mb-4">Profit Calculator</h2>
+              {selectedProduct && (
+                <div className="mb-3 pb-3 border-b border-blue-200">
+                  <p className="text-xs text-gray-500">Product</p>
+                  <p className="text-sm font-medium text-gray-900">{selectedProduct.name}</p>
+                  <p className="text-xs text-gray-500 mt-1">Base Cost: £{Number(selectedProduct.baseCostPrice).toFixed(2)}</p>
+                </div>
+              )}
+              <div className="space-y-3">
+                {[
+                  { label: 'Revenue', value: salePrice * quantity },
+                  { label: `Unit Cost × ${quantity}`, value: totalCost },
+                  { label: 'Ad Spend', value: adAmount },
+                  { label: 'Shipping', value: shippingCost },
+                  { label: `VAT (${vatPercent}%)`, value: vatAmount },
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex justify-between items-center">
+                    <span className="text-xs text-gray-500">{label}</span>
+                    <GBPAmount amount={value} className="text-sm font-medium text-gray-900" />
+                  </div>
+                ))}
+                <div className="border-t border-blue-200 pt-3 flex justify-between items-center">
+                  <span className="text-sm font-semibold text-gray-900">Gross Profit</span>
+                  <GBPAmount amount={grossProfit} className={`text-lg font-bold ${grossProfit >= 0 ? 'text-green-700' : 'text-red-700'}`} />
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-semibold text-gray-900">Margin</span>
+                  <span className={`text-lg font-bold ${marginPercent >= 20 ? 'text-green-700' : marginPercent >= 10 ? 'text-yellow-700' : 'text-red-700'}`}>
+                    {marginPercent.toFixed(2)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </form>
     </div>

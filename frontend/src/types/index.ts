@@ -415,6 +415,8 @@ export interface MarketingLead {
   product?: { id: string; name: string; sku: string };
   categoryId?: string;
   category?: { id: string; name: string };
+  productIds?: string[];
+  categoryIds?: string[];
   companyName?: string;
   contactName?: string;
   contactEmail?: string;

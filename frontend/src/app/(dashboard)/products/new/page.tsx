@@ -103,7 +103,37 @@ export default function NewProductPage() {
             <textarea value={form.description} onChange={set('description')} rows={3}
               className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
-          <Input label="Image URL" type="url" value={form.imageUrl} onChange={set('imageUrl')} placeholder="https://example.com/product-image.jpg" />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Product Image</label>
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <Input label="" type="url" value={form.imageUrl} onChange={set('imageUrl')} placeholder="https://example.com/product-image.jpg" />
+              </div>
+              <span className="text-xs text-gray-400">or</span>
+              <label className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 transition">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                Upload
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = () => setForm((f) => ({ ...f, imageUrl: reader.result as string }));
+                    reader.readAsDataURL(file);
+                  }}
+                />
+              </label>
+            </div>
+            {form.imageUrl && (
+              <div className="mt-2 relative w-24 h-24 rounded-lg border border-gray-200 overflow-hidden">
+                <img src={form.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                <button type="button" onClick={() => setForm((f) => ({ ...f, imageUrl: '' }))} className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center">✕</button>
+              </div>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <Input label="Base Cost (£)" type="number" min={0} step={0.01} value={form.baseCost} onChange={set('baseCost')} hint="What you pay the supplier" />
             <Input label="Retail Price (£)" type="number" min={0} step={0.01} value={form.retailPrice} onChange={set('retailPrice')} placeholder="0.00" hint="What you charge the customer" />

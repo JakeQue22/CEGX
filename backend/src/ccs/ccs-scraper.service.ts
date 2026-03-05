@@ -447,6 +447,122 @@ export class CcsScraperService {
     return summary;
   }
 
+  /**
+   * Scrape opportunities from Contracts Finder API for CCS frameworks.
+   * Uses the official Contracts Finder v2 API to find procurement opportunities
+   * associated with Crown Commercial Service.
+   */
+  async scrapeOpportunities(): Promise<{ created: number; updated: number; errors: string[] }> {
+    const summary = { created: 0, updated: 0, errors: [] as string[] };
+    const contractsFinderUrl = 'https://www.contractsfinder.service.gov.uk/api/rest/2/search_notices/json';
+
+    try {
+      // Search for CCS opportunities
+      const searchPayload = {
+        keyword: 'Crown Commercial Service',
+        stages: ['tender'],
+        size: 100,
+        from: 0,
+      };
+
+      const response = await fetch(contractsFinderUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(searchPayload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Contracts Finder API returned HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      const notices = data?.results ?? data?.notices ?? [];
+
+      this.logger.log(`Contracts Finder returned ${notices.length} notices`);
+
+      // Get all frameworks for matching
+      const frameworks = await this.prisma.ccsFramework.findMany({
+        select: { id: true, reference: true, title: true, category: true },
+      });
+
+      for (const notice of notices) {
+        try {
+          const title = notice.title || notice.description?.substring(0, 200) || 'Untitled';
+          const noticeId = notice.id || notice.identifier;
+          const noticeUrl = notice.links?.self || notice.url
+            || (noticeId ? `https://www.contractsfinder.service.gov.uk/Notice/${noticeId}` : undefined);
+          const buyerName = notice.organisationName || notice.buyer?.name || notice.contactDetails?.organisationName || '';
+          const description = notice.description || notice.summary || '';
+          const publishedDate = notice.publishedDate || notice.datePublished;
+          const closingDate = notice.deadlineDate || notice.closingDate;
+          const valueStr = notice.valueLow || notice.value?.amount;
+          const region = notice.region || notice.postcode || '';
+          const category = notice.cpvCodes?.[0]?.description || notice.category || '';
+
+          // Try to match with an existing framework by checking title/description for RM references
+          let frameworkId: string | undefined;
+          for (const fw of frameworks) {
+            if (title.includes(fw.reference) || description.includes(fw.reference)) {
+              frameworkId = fw.id;
+              break;
+            }
+          }
+
+          // Check if opportunity already exists by noticeUrl
+          const existing = noticeUrl
+            ? await this.prisma.ccsOpportunity.findFirst({ where: { noticeUrl } })
+            : null;
+
+          if (existing) {
+            await this.prisma.ccsOpportunity.update({
+              where: { id: existing.id },
+              data: {
+                title,
+                description: description || existing.description,
+                buyerName: buyerName || existing.buyerName,
+                publishedDate: publishedDate ? new Date(publishedDate) : existing.publishedDate,
+                closingDate: closingDate ? new Date(closingDate) : existing.closingDate,
+                value: valueStr ? parseFloat(String(valueStr)) : existing.value,
+                region: region || existing.region,
+                category: category || existing.category,
+                frameworkId: frameworkId || existing.frameworkId,
+              },
+            });
+            summary.updated++;
+          } else {
+            await this.prisma.ccsOpportunity.create({
+              data: {
+                title,
+                description,
+                buyerName: buyerName || undefined,
+                status: 'OPEN',
+                publishedDate: publishedDate ? new Date(publishedDate) : undefined,
+                closingDate: closingDate ? new Date(closingDate) : undefined,
+                value: valueStr ? parseFloat(String(valueStr)) : undefined,
+                region: region || undefined,
+                category: category || undefined,
+                noticeUrl: noticeUrl || undefined,
+                frameworkId: frameworkId || undefined,
+              },
+            });
+            summary.created++;
+          }
+        } catch (noticeErr) {
+          summary.errors.push(`Notice: ${noticeErr.message}`);
+        }
+      }
+    } catch (err) {
+      this.logger.error(`Failed to scrape Contracts Finder opportunities: ${err.message}`);
+      summary.errors.push(`Contracts Finder API: ${err.message}`);
+    }
+
+    this.logger.log(`Opportunities sync: ${summary.created} created, ${summary.updated} updated, ${summary.errors.length} errors`);
+    return summary;
+  }
+
   private extractKeyValueField(
     label: string,
     value: string,

@@ -491,6 +491,8 @@ model MarketingLead {
   product         Product?           @relation(fields: [productId], references: [id])
   categoryId      String?
   category        ProductCategory?   @relation(fields: [categoryId], references: [id])
+  productIds      Json?
+  categoryIds     Json?
   companyName     String?
   contactName     String?
   contactEmail    String?

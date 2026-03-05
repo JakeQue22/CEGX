@@ -61,6 +61,18 @@ export class CreateLeadDto {
   @IsOptional()
   @IsString()
   categoryId?: string;
+
+  @ApiPropertyOptional({ description: 'Array of product IDs for multi-select' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  productIds?: string[];
+
+  @ApiPropertyOptional({ description: 'Array of category IDs for multi-select' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  categoryIds?: string[];
 }
 
 export class UpdateLeadDto {
@@ -108,6 +120,33 @@ export class UpdateLeadDto {
   @IsOptional()
   @IsString()
   pipelineStageId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  productId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  categoryId?: string;
+
+  @ApiPropertyOptional({ description: 'Array of product IDs for multi-select' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  productIds?: string[];
+
+  @ApiPropertyOptional({ description: 'Array of category IDs for multi-select' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  categoryIds?: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  source?: string;
 }
 
 export class CreateOutreachEmailDto {
