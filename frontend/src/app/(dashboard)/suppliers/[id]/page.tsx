@@ -1,13 +1,42 @@
 'use client';
 
 import { use, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import axiosInstance from '@/lib/axios';
-import { Supplier, Product, Deal } from '@/types';
+import { Supplier, Product, Deal, User } from '@/types';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { GBPAmount } from '@/components/ui/GBPAmount';
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
+
+interface EditForm {
+  name: string;
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string;
+  country: string;
+  rating: string;
+  notes: string;
+  isActive: boolean;
+  salesPersonId: string;
+}
+
+function buildForm(supplier: Supplier): EditForm {
+  return {
+    name: supplier.name ?? '',
+    contactName: supplier.contactName ?? '',
+    contactEmail: supplier.contactEmail ?? '',
+    contactPhone: supplier.contactPhone ?? '',
+    country: supplier.country ?? '',
+    rating: supplier.rating != null ? String(supplier.rating) : '',
+    notes: supplier.notes ?? '',
+    isActive: supplier.isActive !== false,
+    salesPersonId: supplier.salesPersonId ?? '',
+  };
+}
 
 const TABS = ['Info', 'Products', 'Deals', 'Profitability'] as const;
 type Tab = (typeof TABS)[number];
@@ -15,6 +44,9 @@ type Tab = (typeof TABS)[number];
 export default function SupplierDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [tab, setTab] = useState<Tab>('Info');
+  const queryClient = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState<EditForm | null>(null);
 
   const { data: supplier, isLoading } = useQuery<Supplier>({
     queryKey: ['supplier', id],
@@ -35,22 +67,75 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
     enabled: tab === 'Deals' || tab === 'Profitability',
   });
 
+  const { data: users = [] } = useQuery<User[]>({
+    queryKey: ['users'],
+    queryFn: () => axiosInstance.get('/users').then((r) => Array.isArray(r.data) ? r.data : []),
+    enabled: editing,
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (payload: Record<string, unknown>) =>
+      axiosInstance.patch(`/suppliers/${id}`, payload).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['supplier', id] });
+      setEditing(false);
+      setForm(null);
+    },
+  });
+
   if (isLoading) return <LoadingSpinner />;
   if (!supplier) return <div className="text-red-600">Supplier not found.</div>;
 
   const totalRevenue = deals.reduce((sum, d) => sum + (d.revenue ?? d.salePrice), 0);
   const totalProfit = deals.reduce((sum, d) => sum + (d.grossProfit ?? 0), 0);
 
+  const handleEdit = () => {
+    setForm(buildForm(supplier));
+    setEditing(true);
+  };
+
+  const handleCancel = () => {
+    setEditing(false);
+    setForm(null);
+    updateMutation.reset();
+  };
+
+  const handleSave = () => {
+    if (!form) return;
+    const payload: Record<string, unknown> = {
+      name: form.name,
+      contactName: form.contactName || undefined,
+      contactEmail: form.contactEmail || undefined,
+      contactPhone: form.contactPhone || undefined,
+      country: form.country || undefined,
+      notes: form.notes || undefined,
+      isActive: form.isActive,
+      salesPersonId: form.salesPersonId || undefined,
+    };
+    if (form.rating !== '') {
+      payload.rating = Number(form.rating);
+    }
+    updateMutation.mutate(payload);
+  };
+
+  const set = (field: keyof EditForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+    setForm((f) => (f ? { ...f, [field]: e.target.value } : f));
+
   return (
     <div className="max-w-4xl space-y-6">
       <div className="flex items-center gap-3">
         <Link href="/suppliers" className="text-gray-400 hover:text-gray-600 text-sm">← Suppliers</Link>
       </div>
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">{supplier.name}</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          {supplier.country}{supplier.rating != null ? ` · ${'★'.repeat(supplier.rating)} ${supplier.rating}/5` : ''}
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">{supplier.name}</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            {supplier.country}{supplier.rating != null ? ` · ${'★'.repeat(supplier.rating)} ${supplier.rating}/5` : ''}
+          </p>
+        </div>
+        {!editing && tab === 'Info' && (
+          <Button variant="secondary" size="sm" onClick={handleEdit}>Edit</Button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -69,7 +154,7 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
       </div>
 
       {/* Tab Content */}
-      {tab === 'Info' && (
+      {tab === 'Info' && !editing && (
         <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
           <dl className="grid grid-cols-2 gap-5">
             {[
@@ -92,6 +177,60 @@ export default function SupplierDetailPage({ params }: { params: Promise<{ id: s
               <p className="text-sm text-gray-700 whitespace-pre-wrap">{supplier.notes}</p>
             </div>
           )}
+        </div>
+      )}
+
+      {tab === 'Info' && editing && form && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-5">
+          <div className="grid grid-cols-2 gap-5">
+            <Input label="Name *" value={form.name} onChange={set('name')} required />
+            <Input label="Contact Name" value={form.contactName} onChange={set('contactName')} />
+            <Input label="Contact Email" type="email" value={form.contactEmail} onChange={set('contactEmail')} />
+            <Input label="Contact Phone" type="tel" value={form.contactPhone} onChange={set('contactPhone')} />
+            <Input label="Country" value={form.country} onChange={set('country')} />
+            <Input label="Rating (0-5)" type="number" min={0} max={5} step={0.1} value={form.rating} onChange={set('rating')} />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Sales Person</label>
+              <select
+                value={form.salesPersonId}
+                onChange={set('salesPersonId')}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select sales person</option>
+                {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+              </select>
+            </div>
+            <Select
+              label="Status"
+              value={form.isActive ? 'true' : 'false'}
+              options={[
+                { value: 'true', label: 'Active' },
+                { value: 'false', label: 'Inactive' },
+              ]}
+              onChange={(e) => setForm((f) => (f ? { ...f, isActive: e.target.value === 'true' } : f))}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Notes</label>
+            <textarea
+              value={form.notes}
+              onChange={set('notes')}
+              rows={3}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+            />
+          </div>
+
+          {updateMutation.isError && (
+            <p className="text-sm text-red-600">
+              {(updateMutation.error as any)?.response?.data?.message ?? 'Failed to update supplier.'}
+            </p>
+          )}
+
+          <div className="flex items-center gap-3 pt-2">
+            <Button onClick={handleSave} loading={updateMutation.isPending}>Save</Button>
+            <Button variant="secondary" onClick={handleCancel} disabled={updateMutation.isPending}>Cancel</Button>
+          </div>
         </div>
       )}
 
