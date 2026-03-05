@@ -41,8 +41,12 @@ export default function CcsOverviewPage() {
       queryClient.invalidateQueries({ queryKey: ['ccs-frameworks'] });
       setTimeout(() => setSyncResult(null), 15000);
     },
-    onError: () => {
-      setSyncResult({ created: 0, updated: 0, errors: ['Failed to sync — check your network connection and try again.'] });
+    onError: (err: any) => {
+      const detail = err?.response?.data?.message || err?.message || '';
+      const msg = detail
+        ? `Sync request failed: ${detail}`
+        : 'Failed to sync — the CCS website may be temporarily unavailable. Please try again later.';
+      setSyncResult({ created: 0, updated: 0, errors: [msg] });
       setTimeout(() => setSyncResult(null), 10000);
     },
   });

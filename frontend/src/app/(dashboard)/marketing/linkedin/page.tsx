@@ -34,14 +34,19 @@ export default function LinkedInAccountsPage() {
       queryClient.invalidateQueries({ queryKey: ['linkedin-accounts'] });
       const email = data?.email ?? 'account';
       const stats = data?.stats;
+      const hasData = stats && (stats.connections > 0 || stats.messages > 0);
       const statsInfo = stats
-        ? ` (${stats.connections} connections, ${stats.messages} messages in database)`
+        ? ` — ${stats.connections} connections, ${stats.messages} messages tracked`
         : '';
-      setSyncMessage(`Sync queued for ${email}${statsInfo}. Stale pending connections will be marked as expired.`);
+      setSyncMessage(
+        hasData
+          ? `✅ Sync complete for ${email}${statsInfo}. Stale pending connections marked as expired.`
+          : `✅ Sync triggered for ${email}. Add connections via the Connect button or import them to start tracking.`
+      );
       setTimeout(() => setSyncMessage(null), 8000);
     },
     onError: () => {
-      setSyncMessage('Failed to sync — please try again');
+      setSyncMessage('❌ Failed to sync — please try again');
       setTimeout(() => setSyncMessage(null), 5000);
     },
   });

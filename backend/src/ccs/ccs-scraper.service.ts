@@ -52,39 +52,43 @@ export class CcsScraperService {
     return proxy;
   }
 
-  private async fetchPage(url: string): Promise<string> {
+  private async fetchPage(url: string, retries = 2): Promise<string> {
     const proxy = this.getNextProxy();
     const headers: Record<string, string> = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
       'Accept-Language': 'en-GB,en;q=0.9',
     };
-    const fetchOptions: RequestInit = {
-      headers,
-      signal: AbortSignal.timeout(15000),
-    };
 
     let fetchUrl = url;
+    let lastError: Error | null = null;
 
-    if (proxy) {
-      this.logger.debug(`Using proxy: ${proxy.host}:${proxy.port} for ${url}`);
-
-      // Node.js native fetch doesn't support proxies directly.
-      // When a proxy is configured, log it for observability. In production,
-      // set HTTPS_PROXY / HTTP_PROXY environment variables for system-wide proxy routing,
-      // or use a proxy agent library like undici ProxyAgent.
+    for (let attempt = 0; attempt <= retries; attempt++) {
       try {
+        const fetchOptions: RequestInit = {
+          headers,
+          signal: AbortSignal.timeout(20000),
+        };
+
+        if (attempt > 0) {
+          this.logger.log(`Retry ${attempt}/${retries} for ${url}`);
+          await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+        }
+
+        if (proxy && attempt === 0) {
+          this.logger.debug(`Using proxy: ${proxy.host}:${proxy.port} for ${url}`);
+        }
+
         const response = await fetch(fetchUrl, fetchOptions);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return response.text();
+        if (!response.ok) throw new Error(`HTTP ${response.status} fetching ${url}`);
+        return await response.text();
       } catch (err) {
-        this.logger.warn(`Fetch via proxy context failed for ${url}, trying direct: ${err.message}`);
+        lastError = err as Error;
+        this.logger.warn(`Fetch attempt ${attempt + 1} failed for ${url}: ${lastError.message}`);
       }
     }
 
-    const response = await fetch(fetchUrl, fetchOptions);
-    if (!response.ok) throw new Error(`HTTP ${response.status} fetching ${url}`);
-    return response.text();
+    throw lastError ?? new Error(`Failed to fetch ${url} after ${retries + 1} attempts`);
   }
 
   /**
@@ -97,72 +101,67 @@ export class CcsScraperService {
     let page = 1;
     const maxPages = 20; // safety limit
 
-    try {
-      while (page <= maxPages) {
-        const url = page === 1
-          ? `${this.baseUrl}/agreements`
-          : `${this.baseUrl}/agreements?page=${page}`;
+    while (page <= maxPages) {
+      const url = page === 1
+        ? `${this.baseUrl}/agreements`
+        : `${this.baseUrl}/agreements?page=${page}`;
 
-        this.logger.log(`Scraping CCS agreements page ${page}: ${url}`);
-        const html = await this.fetchPage(url);
-        const $ = cheerio.load(html);
-        let foundOnPage = 0;
+      this.logger.log(`Scraping CCS agreements page ${page}: ${url}`);
+      const html = await this.fetchPage(url);
+      const $ = cheerio.load(html);
+      let foundOnPage = 0;
 
-        // CCS website uses agreement cards/list items
-        $('a[href*="/agreements/"]').each((_i, el) => {
-          const $el = $(el);
-          const href = $el.attr('href') || '';
-          const title = $el.text().trim();
+      // CCS website uses agreement cards/list items
+      $('a[href*="/agreements/"]').each((_i, el) => {
+        const $el = $(el);
+        const href = $el.attr('href') || '';
+        const title = $el.text().trim();
 
-          // Extract reference from URL (e.g. /agreements/RM6187 or /agreements/RM3764.3)
-          const refMatch = href.match(/\/agreements\/(RM[\d.]+)/i);
-          if (!refMatch || !title) return;
+        // Extract reference from URL (e.g. /agreements/RM6187 or /agreements/RM3764.3)
+        const refMatch = href.match(/\/agreements\/(RM[\d.]+)/i);
+        if (!refMatch || !title) return;
 
-          const reference = refMatch[1].toUpperCase();
+        const reference = refMatch[1].toUpperCase();
 
-          // Skip duplicates across pages
-          if (seenRefs.has(reference)) return;
-          seenRefs.add(reference);
-          foundOnPage++;
+        // Skip duplicates across pages
+        if (seenRefs.has(reference)) return;
+        seenRefs.add(reference);
+        foundOnPage++;
 
-          // Look for status and category in surrounding elements
-          const $parent = $el.closest('li, .agreement-item, .govuk-summary-list__row, div');
-          const statusText = $parent.find('.govuk-tag, .status, [class*="status"]').first().text().trim();
-          const categoryText = $parent.find('.category, [class*="category"]').first().text().trim();
+        // Look for status and category in surrounding elements
+        const $parent = $el.closest('li, .agreement-item, .govuk-summary-list__row, div');
+        const statusText = $parent.find('.govuk-tag, .status, [class*="status"]').first().text().trim();
+        const categoryText = $parent.find('.category, [class*="category"]').first().text().trim();
 
-          // Filter out metadata strings that were incorrectly picked up as categories
-          const isMetadata = (text: string) =>
-            /Agreement ID:|Start Date:|End Date:|Regulation:/i.test(text);
+        // Filter out metadata strings that were incorrectly picked up as categories
+        const isMetadata = (text: string) =>
+          /Agreement ID:|Start Date:|End Date:|Regulation:/i.test(text);
 
-          frameworks.push({
-            reference,
-            title,
-            description: '',
-            category: (categoryText && !isMetadata(categoryText)) ? categoryText : title,
-            status: this.normaliseStatus(statusText),
-            websiteUrl: href.startsWith('http') ? href : `${this.baseUrl}${href}`,
-          });
+        frameworks.push({
+          reference,
+          title,
+          description: '',
+          category: (categoryText && !isMetadata(categoryText)) ? categoryText : title,
+          status: this.normaliseStatus(statusText),
+          websiteUrl: href.startsWith('http') ? href : `${this.baseUrl}${href}`,
         });
+      });
 
-        this.logger.log(`Page ${page}: found ${foundOnPage} new frameworks`);
+      this.logger.log(`Page ${page}: found ${foundOnPage} new frameworks`);
 
-        // If no new frameworks found on this page, we've reached the end
-        if (foundOnPage === 0) {
-          this.logger.log(`No new frameworks on page ${page}, stopping pagination`);
-          break;
-        }
-
-        page++;
-
-        // Small delay between page requests
-        await new Promise((resolve) => setTimeout(resolve, this.requestDelayMs));
+      // If no new frameworks found on this page, we've reached the end
+      if (foundOnPage === 0) {
+        this.logger.log(`No new frameworks on page ${page}, stopping pagination`);
+        break;
       }
 
-      this.logger.log(`Scraped ${frameworks.length} total frameworks from ${page} page(s)`);
-    } catch (err) {
-      this.logger.error(`Failed to scrape CCS agreements list: ${err.message}`);
+      page++;
+
+      // Small delay between page requests
+      await new Promise((resolve) => setTimeout(resolve, this.requestDelayMs));
     }
 
+    this.logger.log(`Scraped ${frameworks.length} total frameworks from ${page} page(s)`);
     return frameworks;
   }
 
