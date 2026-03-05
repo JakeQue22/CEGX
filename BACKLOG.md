@@ -57,6 +57,9 @@
 - [x] Fix "Failed to place order" — improved error reporting + removed stale field sends
 - [x] Create this `BACKLOG.md` for task queue management
 - [x] Users table editable by admin — listing page, detail/edit page, new user page, sidebar nav item
+- [x] Leads should go into pipeline (not just deals) — pipelineStageId on MarketingLead, Kanban shows both
+- [x] Allow edit leads — `/marketing/leads/[id]` detail/edit page with search, clickable rows
+- [x] CCS Framework Tools — full CRUD for frameworks, lots, opportunities; browse/search/filter/bid tracking
 
 ---
 

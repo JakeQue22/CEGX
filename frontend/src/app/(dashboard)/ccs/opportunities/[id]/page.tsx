@@ -121,8 +121,6 @@ export default function CcsOpportunityDetailPage({ params }: { params: Promise<{
     setForm((prev) => (prev ? { ...prev, [key]: value } : prev));
   };
 
-  const isOverdue = opp.closingDate && new Date(opp.closingDate) < new Date();
-
   return (
     <div className="max-w-4xl space-y-6">
       <div className="flex items-center gap-3">

@@ -15,7 +15,10 @@ export class CcsService {
 
   // --- Frameworks ---
   async createFramework(dto: CreateCcsFrameworkDto) {
-    return this.prisma.ccsFramework.create({ data: dto as any });
+    const { maxValue, ...rest } = dto;
+    return this.prisma.ccsFramework.create({
+      data: { ...rest, maxValue: maxValue != null ? maxValue : undefined },
+    });
   }
 
   async getFrameworks(filters: { category?: string; status?: string; search?: string }) {
@@ -54,7 +57,11 @@ export class CcsService {
 
   async updateFramework(id: string, dto: UpdateCcsFrameworkDto) {
     await this.getFrameworkById(id);
-    return this.prisma.ccsFramework.update({ where: { id }, data: dto as any });
+    const { maxValue, ...rest } = dto;
+    return this.prisma.ccsFramework.update({
+      where: { id },
+      data: { ...rest, maxValue: maxValue != null ? maxValue : undefined },
+    });
   }
 
   async deleteFramework(id: string) {
@@ -112,7 +119,14 @@ export class CcsService {
 
   // --- Opportunities ---
   async createOpportunity(dto: CreateCcsOpportunityDto) {
-    return this.prisma.ccsOpportunity.create({ data: dto as any });
+    const { value, bidValue, ...rest } = dto;
+    return this.prisma.ccsOpportunity.create({
+      data: {
+        ...rest,
+        value: value != null ? value : undefined,
+        bidValue: bidValue != null ? bidValue : undefined,
+      },
+    });
   }
 
   async getOpportunities(filters: {
@@ -161,7 +175,15 @@ export class CcsService {
 
   async updateOpportunity(id: string, dto: UpdateCcsOpportunityDto) {
     await this.getOpportunityById(id);
-    return this.prisma.ccsOpportunity.update({ where: { id }, data: dto as any });
+    const { value, bidValue, ...rest } = dto;
+    return this.prisma.ccsOpportunity.update({
+      where: { id },
+      data: {
+        ...rest,
+        value: value != null ? value : undefined,
+        bidValue: bidValue != null ? bidValue : undefined,
+      },
+    });
   }
 
   async deleteOpportunity(id: string) {
