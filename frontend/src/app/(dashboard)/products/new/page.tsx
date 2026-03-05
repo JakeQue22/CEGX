@@ -12,13 +12,15 @@ interface BulkTier {
   minQuantity: number;
   maxQuantity: string;
   unitCost: number;
+  discountType: string;
+  discountValue: number;
 }
 
 export default function NewProductPage() {
   const router = useRouter();
   const [form, setForm] = useState({
     name: '', sku: '', description: '', baseCost: '0',
-    supplierId: '', categoryId: '',
+    minOrderQty: '1', supplierId: '', categoryId: '',
   });
   const [tiers, setTiers] = useState<BulkTier[]>([]);
   const [error, setError] = useState('');
@@ -46,7 +48,7 @@ export default function NewProductPage() {
   });
 
   function addTier() {
-    setTiers((t) => [...t, { minQuantity: 1, maxQuantity: '', unitCost: 0 }]);
+    setTiers((t) => [...t, { minQuantity: 1, maxQuantity: '', unitCost: 0, discountType: 'FIXED_PRICE', discountValue: 0 }]);
   }
 
   function removeTier(idx: number) {
@@ -66,11 +68,14 @@ export default function NewProductPage() {
       sku: form.sku,
       description: form.description || undefined,
       baseCostPrice: Number(form.baseCost),
+      minOrderQuantity: Number(form.minOrderQty),
       supplierId: form.supplierId || undefined,
       categoryId: form.categoryId || undefined,
       bulkPricings: tiers.length > 0 ? tiers.map((t) => ({
         minQuantity: t.minQuantity,
         bulkCostPrice: t.unitCost,
+        discountType: t.discountType,
+        discountValue: t.discountValue,
       })) : undefined,
     });
   }
@@ -97,6 +102,7 @@ export default function NewProductPage() {
               className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
           <Input label="Base Cost (£)" type="number" min={0} step={0.01} value={form.baseCost} onChange={set('baseCost')} />
+          <Input label="Min Order Quantity" type="number" min={1} step={1} value={form.minOrderQty} onChange={set('minOrderQty')} />
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Supplier</label>
@@ -128,13 +134,30 @@ export default function NewProductPage() {
           ) : (
             <div className="space-y-3">
               {tiers.map((tier, idx) => (
-                <div key={idx} className="flex gap-3 items-end">
+                <div key={idx} className="flex gap-3 items-end flex-wrap">
                   <Input label="Min Qty" type="number" min={1} value={tier.minQuantity}
                     onChange={(e) => updateTier(idx, 'minQuantity', Number(e.target.value))} />
                   <Input label="Max Qty" type="number" min={1} value={tier.maxQuantity}
                     onChange={(e) => updateTier(idx, 'maxQuantity', e.target.value)} placeholder="∞" />
                   <Input label="Unit Cost (£)" type="number" min={0} step={0.01} value={tier.unitCost}
                     onChange={(e) => updateTier(idx, 'unitCost', Number(e.target.value))} />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Discount Type</label>
+                    <select value={tier.discountType} onChange={(e) => updateTier(idx, 'discountType', e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="FIXED_PRICE">FIXED_PRICE</option>
+                      <option value="PERCENTAGE_OFF">PERCENTAGE_OFF</option>
+                      <option value="FIXED_AMOUNT_OFF">FIXED_AMOUNT_OFF</option>
+                    </select>
+                  </div>
+                  {tier.discountType === 'PERCENTAGE_OFF' && (
+                    <Input label="Discount %" type="number" min={0} step={0.01} value={tier.discountValue}
+                      onChange={(e) => updateTier(idx, 'discountValue', Number(e.target.value))} />
+                  )}
+                  {tier.discountType === 'FIXED_AMOUNT_OFF' && (
+                    <Input label="Amount Off (£)" type="number" min={0} step={0.01} value={tier.discountValue}
+                      onChange={(e) => updateTier(idx, 'discountValue', Number(e.target.value))} />
+                  )}
                   <Button type="button" variant="danger" size="sm" onClick={() => removeTier(idx)}>✕</Button>
                 </div>
               ))}

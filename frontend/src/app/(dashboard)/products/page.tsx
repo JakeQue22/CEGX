@@ -44,6 +44,7 @@ export default function ProductsPage() {
     { key: 'category', header: 'Category', render: (p) => p.category?.name ?? '—' },
     { key: 'supplier', header: 'Supplier', render: (p) => p.supplier?.name ?? '—' },
     { key: 'baseCostPrice', header: 'Base Cost', sortable: true, render: (p) => <GBPAmount amount={p.baseCostPrice} /> },
+    { key: 'minOrderQuantity', header: 'Min Qty', render: (p) => p.minOrderQuantity ?? 1 },
     { key: 'isArchived', header: 'Status', render: (p) => p.isArchived ? <Badge label="ARCHIVED" variant="neutral" /> : <Badge label="ACTIVE" variant="success" /> },
   ];
 
