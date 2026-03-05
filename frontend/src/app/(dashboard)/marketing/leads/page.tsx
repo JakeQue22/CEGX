@@ -165,7 +165,6 @@ export default function MarketingLeadsPage() {
               </div>
             </div>
           )}
-          </div>
           <textarea placeholder="Notes" value={newLead.notes} onChange={(e) => setNewLead({ ...newLead, notes: e.target.value })} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
           <div className="flex gap-2">
             <button onClick={() => createLead.mutate(newLead)} disabled={createLead.isPending} className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition disabled:opacity-50">
