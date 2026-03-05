@@ -72,6 +72,21 @@ export class CreateCcsFrameworkDto {
   @IsOptional()
   @IsNumber()
   maxValue?: number;
+
+  @ApiPropertyOptional({ description: 'Benefits of the framework' })
+  @IsOptional()
+  @IsString()
+  benefits?: string;
+
+  @ApiPropertyOptional({ description: 'Products and services available' })
+  @IsOptional()
+  @IsString()
+  productsServices?: string;
+
+  @ApiPropertyOptional({ description: 'Regulation (e.g. PCR2015)' })
+  @IsOptional()
+  @IsString()
+  regulation?: string;
 }
 
 export class UpdateCcsFrameworkDto {
@@ -119,6 +134,21 @@ export class UpdateCcsFrameworkDto {
   @IsOptional()
   @IsNumber()
   maxValue?: number;
+
+  @ApiPropertyOptional({ description: 'Benefits of the framework' })
+  @IsOptional()
+  @IsString()
+  benefits?: string;
+
+  @ApiPropertyOptional({ description: 'Products and services available' })
+  @IsOptional()
+  @IsString()
+  productsServices?: string;
+
+  @ApiPropertyOptional({ description: 'Regulation (e.g. PCR2015)' })
+  @IsOptional()
+  @IsString()
+  regulation?: string;
 }
 
 export class CreateCcsLotDto {

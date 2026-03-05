@@ -318,13 +318,13 @@ export class CcsScraperService {
             summary.created++;
           }
 
-          // Try to scrape detail page for lots
+          // Try to scrape detail page for lots and additional content
           try {
             const detail = await this.scrapeFrameworkDetail(fw.reference);
             const dbFw = await this.prisma.ccsFramework.findFirst({ where: { reference: fw.reference } });
 
-            if (dbFw && detail.lots.length > 0) {
-              // Update framework with additional detail
+            if (dbFw) {
+              // Update framework with additional detail (even if no lots found)
               if (detail.description || detail.startDate || detail.endDate || detail.benefits || detail.productsServices || detail.regulation) {
                 await this.prisma.ccsFramework.update({
                   where: { id: dbFw.id },
