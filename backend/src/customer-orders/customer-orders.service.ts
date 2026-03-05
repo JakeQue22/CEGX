@@ -32,7 +32,7 @@ export class CustomerOrdersService {
   }
 
   async findAll(filters?: { customerId?: string; status?: string }) {
-    const where: Record<string, string> = {};
+    const where: Record<string, unknown> = {};
     if (filters?.customerId) where.customerId = filters.customerId;
     if (filters?.status) where.status = filters.status;
 
