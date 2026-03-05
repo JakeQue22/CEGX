@@ -12,6 +12,7 @@ import {
 @Injectable()
 export class OutreachService {
   private readonly logger = new Logger(OutreachService.name);
+  private static readonly DEFAULT_LEAD_STAGE_NAME = 'Lead';
 
   constructor(
     private readonly prisma: PrismaService,
@@ -30,7 +31,7 @@ export class OutreachService {
       if (!defaultStage) {
         // Fallback: look for a stage named "Lead"
         const leadStage = await this.prisma.pipelineStage.findFirst({
-          where: { name: 'Lead' },
+          where: { name: OutreachService.DEFAULT_LEAD_STAGE_NAME },
           select: { id: true },
         });
         pipelineStageId = leadStage?.id;
