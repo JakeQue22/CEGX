@@ -20,6 +20,7 @@ export interface ScrapedFramework {
   maxValue?: number;
   benefits?: string;
   productsServices?: string;
+  howToBuy?: string;
   regulation?: string;
 }
 
@@ -84,49 +85,80 @@ export class CcsScraperService {
 
   /**
    * Scrape the CCS agreements listing page to get framework data.
-   * CCS publishes agreements at /agreements
+   * CCS publishes agreements at /agreements — paginates with ?page=N
    */
   async scrapeFrameworksList(): Promise<ScrapedFramework[]> {
     const frameworks: ScrapedFramework[] = [];
+    const seenRefs = new Set<string>();
+    let page = 1;
+    const maxPages = 20; // safety limit
 
     try {
-      // CCS agreements listing page
-      const html = await this.fetchPage(`${this.baseUrl}/agreements`);
-      const $ = cheerio.load(html);
+      while (page <= maxPages) {
+        const url = page === 1
+          ? `${this.baseUrl}/agreements`
+          : `${this.baseUrl}/agreements?page=${page}`;
 
-      // CCS website uses agreement cards/list items
-      // Each agreement typically has: reference, title, status, category, dates
-      $('a[href*="/agreements/"]').each((_i, el) => {
-        const $el = $(el);
-        const href = $el.attr('href') || '';
-        const title = $el.text().trim();
+        this.logger.log(`Scraping CCS agreements page ${page}: ${url}`);
+        const html = await this.fetchPage(url);
+        const $ = cheerio.load(html);
+        let foundOnPage = 0;
 
-        // Extract reference from URL (e.g. /agreements/RM6187)
-        const refMatch = href.match(/\/agreements\/(RM\d+)/i);
-        if (!refMatch || !title) return;
+        // CCS website uses agreement cards/list items
+        $('a[href*="/agreements/"]').each((_i, el) => {
+          const $el = $(el);
+          const href = $el.attr('href') || '';
+          const title = $el.text().trim();
 
-        const reference = refMatch[1];
+          // Extract reference from URL (e.g. /agreements/RM6187)
+          const refMatch = href.match(/\/agreements\/(RM\d+)/i);
+          if (!refMatch || !title) return;
 
-        // Look for status and category in surrounding elements
-        const $parent = $el.closest('li, .agreement-item, .govuk-summary-list__row, div');
-        const statusText = $parent.find('.govuk-tag, .status, [class*="status"]').first().text().trim();
-        const categoryText = $parent.find('.category, [class*="category"]').first().text().trim();
+          const reference = refMatch[1].toUpperCase();
 
-        // Filter out metadata strings that were incorrectly picked up as categories
-        const isMetadata = (text: string) =>
-          /Agreement ID:|Start Date:|End Date:|Regulation:/i.test(text);
+          // Skip duplicates across pages
+          if (seenRefs.has(reference)) return;
+          seenRefs.add(reference);
+          foundOnPage++;
 
-        frameworks.push({
-          reference: reference.toUpperCase(),
-          title,
-          description: '',
-          category: (categoryText && !isMetadata(categoryText)) ? categoryText : title,
-          status: this.normaliseStatus(statusText),
-          websiteUrl: href.startsWith('http') ? href : `${this.baseUrl}${href}`,
+          // Look for status and category in surrounding elements
+          const $parent = $el.closest('li, .agreement-item, .govuk-summary-list__row, div');
+          const statusText = $parent.find('.govuk-tag, .status, [class*="status"]').first().text().trim();
+          const categoryText = $parent.find('.category, [class*="category"]').first().text().trim();
+
+          // Filter out metadata strings that were incorrectly picked up as categories
+          const isMetadata = (text: string) =>
+            /Agreement ID:|Start Date:|End Date:|Regulation:/i.test(text);
+
+          frameworks.push({
+            reference,
+            title,
+            description: '',
+            category: (categoryText && !isMetadata(categoryText)) ? categoryText : title,
+            status: this.normaliseStatus(statusText),
+            websiteUrl: href.startsWith('http') ? href : `${this.baseUrl}${href}`,
+          });
         });
-      });
 
-      this.logger.log(`Scraped ${frameworks.length} frameworks from CCS agreements page`);
+        this.logger.log(`Page ${page}: found ${foundOnPage} new frameworks`);
+
+        // Check if there's a next page link
+        const hasNextPage = $('a[rel="next"], .pagination a:contains("Next"), a:contains("Next")').length > 0
+          || foundOnPage > 0;
+
+        // If no new frameworks found on this page, we've reached the end
+        if (foundOnPage === 0) {
+          this.logger.log(`No new frameworks on page ${page}, stopping pagination`);
+          break;
+        }
+
+        page++;
+
+        // Small delay between page requests
+        await new Promise((resolve) => setTimeout(resolve, this.requestDelayMs));
+      }
+
+      this.logger.log(`Scraped ${frameworks.length} total frameworks from ${page} page(s)`);
     } catch (err) {
       this.logger.error(`Failed to scrape CCS agreements list: ${err.message}`);
     }
@@ -150,15 +182,37 @@ export class CcsScraperService {
       if (pageTitle) result.title = pageTitle;
 
       // Description from lead paragraph or summary
-      const description = $('.govuk-body-l, .lead-paragraph, main p').first().text().trim();
-      if (description) result.description = description;
+      const leadDesc = $('.govuk-body-l, .lead-paragraph, main p').first().text().trim();
+      if (leadDesc) result.description = leadDesc;
 
-      // If no description from lead paragraph, try getting all intro paragraphs
+      // Try to get a longer description by collecting all paragraphs in main content
+      // before the first h2 (this typically contains the full description)
+      const longDescParas: string[] = [];
+      const mainContent = $('main .govuk-grid-column-two-thirds, main .govuk-grid-column-full, main article, main');
+      mainContent.first().children().each((_i, el) => {
+        const tag = $(el).prop('tagName')?.toLowerCase();
+        // Stop at the first h2 (sections like Benefits, Products etc.)
+        if (tag === 'h2') return false;
+        if (tag === 'p' || tag === 'div') {
+          const text = $(el).text().trim();
+          // Skip very short text that might be metadata labels
+          if (text && text.length > 20) longDescParas.push(text);
+        }
+      });
+      // Use long description if it's longer than the lead paragraph
+      if (longDescParas.length > 0) {
+        const longDesc = longDescParas.join('\n\n');
+        if (!result.description || longDesc.length > result.description.length) {
+          result.description = longDesc;
+        }
+      }
+
+      // If still no description, try getting all intro paragraphs
       if (!result.description) {
         const introParas: string[] = [];
         $('main .govuk-body, main p').each((_i, el) => {
           const text = $(el).text().trim();
-          if (text && introParas.length < 3) introParas.push(text);
+          if (text && introParas.length < 5) introParas.push(text);
         });
         if (introParas.length) result.description = introParas.join('\n\n');
       }
@@ -222,6 +276,27 @@ export class CcsScraperService {
         }
       });
       if (productsTexts.length) result.productsServices = productsTexts.join('\n');
+
+      // Extract "how to buy" section
+      const howToBuyTexts: string[] = [];
+      $('h2, h3').each((_i, el) => {
+        const heading = $(el).text().trim().toLowerCase();
+        if (heading.includes('how to buy') || heading.includes('how to use') || heading.includes('how to access')) {
+          $(el).nextUntil('h2, h3').each((_j, sib) => {
+            const tag = $(sib).prop('tagName')?.toLowerCase();
+            if (tag === 'ul' || tag === 'ol') {
+              $(sib).find('li').each((_k, li) => {
+                const text = $(li).text().trim();
+                if (text) howToBuyTexts.push(`• ${text}`);
+              });
+            } else {
+              const text = $(sib).text().trim();
+              if (text) howToBuyTexts.push(text);
+            }
+          });
+        }
+      });
+      if (howToBuyTexts.length) result.howToBuy = howToBuyTexts.join('\n');
 
       // Extract lots
       $('h2, h3').each((_i, el) => {
@@ -317,7 +392,7 @@ export class CcsScraperService {
 
             if (dbFw) {
               // Update framework with additional detail (even if no lots found)
-              if (detail.description || detail.startDate || detail.endDate || detail.benefits || detail.productsServices || detail.regulation) {
+              if (detail.description || detail.startDate || detail.endDate || detail.benefits || detail.productsServices || detail.howToBuy || detail.regulation) {
                 await this.prisma.ccsFramework.update({
                   where: { id: dbFw.id },
                   data: {
@@ -329,6 +404,7 @@ export class CcsScraperService {
                     status: detail.status || dbFw.status,
                     benefits: detail.benefits || dbFw.benefits,
                     productsServices: detail.productsServices || dbFw.productsServices,
+                    howToBuy: detail.howToBuy || dbFw.howToBuy,
                     regulation: detail.regulation || dbFw.regulation,
                   },
                 });

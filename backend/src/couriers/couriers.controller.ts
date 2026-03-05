@@ -61,4 +61,29 @@ export class CouriersController {
   remove(@Param('id') id: string) {
     return this.couriersService.remove(id);
   }
+
+  // --- Pricing ---
+  @Post(':id/pricings')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.PROCUREMENT_OFFICER)
+  @ApiOperation({ summary: 'Add pricing to a courier' })
+  addPricing(@Param('id') id: string, @Body() body: { unitType: string; label: string; minQuantity?: number; maxQuantity?: number; price: number; notes?: string }) {
+    return this.couriersService.addPricing(id, body);
+  }
+
+  @Patch('pricings/:pricingId')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.PROCUREMENT_OFFICER)
+  @ApiOperation({ summary: 'Update a courier pricing' })
+  updatePricing(@Param('pricingId') id: string, @Body() body: { unitType?: string; label?: string; minQuantity?: number; maxQuantity?: number; price?: number; notes?: string }) {
+    return this.couriersService.updatePricing(id, body);
+  }
+
+  @Delete('pricings/:pricingId')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Delete a courier pricing' })
+  removePricing(@Param('pricingId') id: string) {
+    return this.couriersService.removePricing(id);
+  }
 }

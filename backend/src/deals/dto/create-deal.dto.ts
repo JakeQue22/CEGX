@@ -37,6 +37,11 @@ export class CreateDealDto {
   @IsString()
   courierId?: string;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  customerId?: string;
+
   @ApiPropertyOptional({ default: 1, minimum: 1 })
   @IsOptional()
   @IsInt()

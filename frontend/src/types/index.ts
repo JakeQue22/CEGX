@@ -107,6 +107,20 @@ export interface Courier {
   trackingUrl?: string;
   isActive: boolean;
   notes?: string;
+  pricings?: CourierPricing[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CourierPricing {
+  id: string;
+  courierId: string;
+  unitType: string;
+  label: string;
+  minQuantity: number;
+  maxQuantity?: number;
+  price: number;
+  notes?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -189,6 +203,8 @@ export interface Deal {
   supplier?: Supplier;
   productId?: string;
   product?: Product;
+  customerId?: string;
+  customer?: Customer;
   assignedUserId?: string;
   assignedUser?: User;
   quantity: number;
@@ -550,6 +566,7 @@ export interface CcsFramework {
   maxValue?: number;
   benefits?: string;
   productsServices?: string;
+  howToBuy?: string;
   regulation?: string;
   lots?: CcsLot[];
   opportunities?: CcsOpportunity[];

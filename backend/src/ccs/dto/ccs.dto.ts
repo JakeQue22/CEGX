@@ -87,6 +87,11 @@ export class CreateCcsFrameworkDto {
   @IsOptional()
   @IsString()
   regulation?: string;
+
+  @ApiPropertyOptional({ description: 'How to buy / access this framework' })
+  @IsOptional()
+  @IsString()
+  howToBuy?: string;
 }
 
 export class UpdateCcsFrameworkDto {
@@ -149,6 +154,11 @@ export class UpdateCcsFrameworkDto {
   @IsOptional()
   @IsString()
   regulation?: string;
+
+  @ApiPropertyOptional({ description: 'How to buy / access this framework' })
+  @IsOptional()
+  @IsString()
+  howToBuy?: string;
 }
 
 export class CreateCcsLotDto {

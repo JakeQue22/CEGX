@@ -18,7 +18,10 @@ export class CouriersService {
             name: { contains: search, mode: 'insensitive' },
           }
         : undefined,
-      include: { _count: { select: { deals: true, customerOrders: true } } },
+      include: {
+        pricings: { orderBy: { unitType: 'asc' } },
+        _count: { select: { deals: true, customerOrders: true } },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -27,6 +30,7 @@ export class CouriersService {
     const courier = await this.prisma.courier.findUnique({
       where: { id },
       include: {
+        pricings: { orderBy: { unitType: 'asc' } },
         _count: { select: { deals: true, customerOrders: true } },
       },
     });
@@ -43,5 +47,26 @@ export class CouriersService {
     await this.findOne(id);
     await this.prisma.courier.delete({ where: { id } });
     return { message: 'Courier deleted successfully' };
+  }
+
+  // --- Pricing ---
+  async addPricing(courierId: string, data: { unitType: string; label: string; minQuantity?: number; maxQuantity?: number; price: number; notes?: string }) {
+    await this.findOne(courierId);
+    return this.prisma.courierPricing.create({
+      data: { courierId, ...data },
+    });
+  }
+
+  async updatePricing(id: string, data: { unitType?: string; label?: string; minQuantity?: number; maxQuantity?: number; price?: number; notes?: string }) {
+    const pricing = await this.prisma.courierPricing.findUnique({ where: { id } });
+    if (!pricing) throw new NotFoundException(`Pricing ${id} not found`);
+    return this.prisma.courierPricing.update({ where: { id }, data });
+  }
+
+  async removePricing(id: string) {
+    const pricing = await this.prisma.courierPricing.findUnique({ where: { id } });
+    if (!pricing) throw new NotFoundException(`Pricing ${id} not found`);
+    await this.prisma.courierPricing.delete({ where: { id } });
+    return { message: 'Pricing deleted successfully' };
   }
 }

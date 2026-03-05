@@ -187,6 +187,8 @@ model Deal {
   supplier             Supplier?     @relation(fields: [supplierId], references: [id])
   productId            String?
   product              Product?      @relation(fields: [productId], references: [id])
+  customerId           String?
+  customer             Customer?     @relation(fields: [customerId], references: [id])
   assignedUserId       String?
   assignedUser         User?         @relation(fields: [assignedUserId], references: [id])
   stageId              String
@@ -328,8 +330,25 @@ model Courier {
 
   deals          Deal[]
   customerOrders CustomerOrder[]
+  pricings       CourierPricing[]
 
   @@map("couriers")
+}
+
+model CourierPricing {
+  id          String   @id @default(cuid())
+  courierId   String
+  courier     Courier  @relation(fields: [courierId], references: [id], onDelete: Cascade)
+  unitType    String   // e.g. "PALLET", "CASE", "BOX", "ITEM", "TRUCK_LOAD"
+  label       String   // e.g. "Full Truck Load", "Per Pallet", "Per Case"
+  minQuantity Int      @default(1)
+  maxQuantity Int?
+  price       Decimal  @db.Decimal(12, 2)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("courier_pricings")
 }
 
 // =============================================================================
@@ -350,6 +369,7 @@ model Customer {
   updatedAt    DateTime @updatedAt
 
   orders CustomerOrder[]
+  deals  Deal[]
 
   @@map("customers")
 }
@@ -558,6 +578,7 @@ model CcsFramework {
   maxValue      Decimal?  @db.Decimal(14, 2)
   benefits      String?   @db.Text
   productsServices String? @db.Text
+  howToBuy      String?   @db.Text
   regulation    String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt

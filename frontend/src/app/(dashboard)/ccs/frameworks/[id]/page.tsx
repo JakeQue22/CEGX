@@ -152,6 +152,12 @@ export default function CcsFrameworkDetailPage({ params }: { params: Promise<{ i
               <p className="text-sm text-gray-700 whitespace-pre-wrap">{framework.productsServices}</p>
             </div>
           )}
+          {framework.howToBuy && (
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-xs text-gray-500 mb-1">How to Buy</p>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap">{framework.howToBuy}</p>
+            </div>
+          )}
         </div>
       )}
 
