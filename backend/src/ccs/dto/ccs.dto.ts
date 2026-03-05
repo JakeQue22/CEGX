@@ -1,5 +1,34 @@
-import { IsString, IsOptional, IsDateString, IsNumber } from 'class-validator';
+import { IsString, IsOptional, IsDateString, IsNumber, IsArray, ValidateNested, IsInt } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+
+export class ProxyEntryDto {
+  @ApiProperty({ example: 'proxy.example.com' })
+  @IsString()
+  host: string;
+
+  @ApiProperty({ example: 8080 })
+  @IsInt()
+  port: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  username?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  password?: string;
+}
+
+export class ConfigureProxiesDto {
+  @ApiProperty({ type: [ProxyEntryDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ProxyEntryDto)
+  proxies: ProxyEntryDto[];
+}
 
 export class CreateCcsFrameworkDto {
   @ApiProperty({ example: 'RM6187' })

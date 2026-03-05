@@ -1,12 +1,17 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '@/lib/axios';
 import { CcsStats } from '@/types';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
 
 export default function CcsOverviewPage() {
+  const queryClient = useQueryClient();
+  const [syncResult, setSyncResult] = useState<{ created: number; updated: number; errors: string[] } | null>(null);
+
   const { data: stats, isLoading } = useQuery<CcsStats>({
     queryKey: ['ccs-stats'],
     queryFn: () => axiosInstance.get('/ccs/stats').then((r) => r.data),
@@ -17,16 +22,67 @@ export default function CcsOverviewPage() {
     queryFn: () => axiosInstance.get('/ccs/categories').then((r) => r.data),
   });
 
+  const syncMutation = useMutation({
+    mutationFn: () => axiosInstance.post('/ccs/scrape/sync').then((r) => r.data),
+    onSuccess: (data) => {
+      setSyncResult(data);
+      queryClient.invalidateQueries({ queryKey: ['ccs-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['ccs-categories'] });
+      queryClient.invalidateQueries({ queryKey: ['ccs-frameworks'] });
+      setTimeout(() => setSyncResult(null), 15000);
+    },
+    onError: () => {
+      setSyncResult({ created: 0, updated: 0, errors: ['Failed to sync — check your network connection and try again.'] });
+      setTimeout(() => setSyncResult(null), 10000);
+    },
+  });
+
   if (isLoading) return <LoadingSpinner />;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Crown Commercial Services</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Browse UK government procurement frameworks, agreements, and opportunities
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Crown Commercial Services</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Browse UK government procurement frameworks, agreements, and opportunities
+          </p>
+        </div>
+        <Button
+          type="button"
+          loading={syncMutation.isPending}
+          onClick={() => syncMutation.mutate()}
+        >
+          <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          {syncMutation.isPending ? 'Syncing from CCS...' : 'Sync from CCS Website'}
+        </Button>
       </div>
+
+      {/* Sync Result */}
+      {syncResult && (
+        <div className={`rounded-xl border p-4 ${syncResult.errors.length > 0 && syncResult.created === 0 && syncResult.updated === 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+          <div className="flex items-start gap-3">
+            <span className="text-lg">{syncResult.errors.length > 0 && syncResult.created === 0 && syncResult.updated === 0 ? '❌' : '✅'}</span>
+            <div>
+              <p className="text-sm font-medium text-gray-900">
+                CCS Sync Complete: {syncResult.created} new frameworks, {syncResult.updated} updated
+              </p>
+              {syncResult.errors.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {syncResult.errors.slice(0, 5).map((err, i) => (
+                    <p key={i} className="text-xs text-red-600">{err}</p>
+                  ))}
+                  {syncResult.errors.length > 5 && (
+                    <p className="text-xs text-red-500">...and {syncResult.errors.length - 5} more errors</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -15,6 +15,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
 import { CcsService } from './ccs.service';
+import { CcsScraperService } from './ccs-scraper.service';
 import {
   CreateCcsFrameworkDto,
   UpdateCcsFrameworkDto,
@@ -22,6 +23,7 @@ import {
   UpdateCcsLotDto,
   CreateCcsOpportunityDto,
   UpdateCcsOpportunityDto,
+  ConfigureProxiesDto,
 } from './dto/ccs.dto';
 
 @ApiTags('CCS Frameworks')
@@ -29,7 +31,10 @@ import {
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('ccs')
 export class CcsController {
-  constructor(private readonly ccsService: CcsService) {}
+  constructor(
+    private readonly ccsService: CcsService,
+    private readonly scraperService: CcsScraperService,
+  ) {}
 
   // --- Stats ---
   @Get('stats')
@@ -42,6 +47,42 @@ export class CcsController {
   @ApiOperation({ summary: 'List framework categories' })
   getCategories() {
     return this.ccsService.getFrameworkCategories();
+  }
+
+  // --- Scraping ---
+  @Post('scrape/sync')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Scrape CCS website and sync frameworks into database' })
+  syncFromCcs() {
+    return this.scraperService.syncFrameworks();
+  }
+
+  @Post('scrape/preview')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Preview what would be scraped from CCS without saving' })
+  previewScrape() {
+    return this.scraperService.scrapeFrameworksList();
+  }
+
+  @Post('scrape/framework/:reference')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Scrape detail for a specific CCS framework by reference' })
+  scrapeFrameworkDetail(@Param('reference') reference: string) {
+    return this.scraperService.scrapeFrameworkDetail(reference);
+  }
+
+  @Post('scrape/proxies')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Configure rotating proxies for CCS scraping' })
+  configureProxies(@Body() dto: ConfigureProxiesDto) {
+    this.scraperService.setProxies(
+      dto.proxies.map((p) => ({
+        host: p.host,
+        port: p.port,
+        auth: p.username && p.password ? { username: p.username, password: p.password } : undefined,
+      })),
+    );
+    return { message: `Configured ${dto.proxies.length} rotating proxies` };
   }
 
   // --- Frameworks ---

@@ -80,6 +80,21 @@ export default function SettingsPage() {
   const emailMerged = { ...settings, ...emailForm };
   const notifMerged = { ...settings, ...notifForm };
 
+  const [testEmailAddr, setTestEmailAddr] = useState('');
+  const [testEmailResult, setTestEmailResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const testEmail = useMutation({
+    mutationFn: (email: string) => axiosInstance.post('/settings/test-email', { email }).then((r) => r.data),
+    onSuccess: (data: { success: boolean; message: string }) => {
+      setTestEmailResult(data);
+      setTimeout(() => setTestEmailResult(null), 8000);
+    },
+    onError: (err: unknown) => {
+      setTestEmailResult({ success: false, message: (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to send test email' });
+      setTimeout(() => setTestEmailResult(null), 8000);
+    },
+  });
+
   const save = useMutation({
     mutationFn: (payload: Partial<CompanySettings>) => updateSettings.mutateAsync(payload),
     onSuccess: () => { setSuccess('Settings saved.'); setError(''); setTimeout(() => setSuccess(''), 3000); },
@@ -230,6 +245,37 @@ export default function SettingsPage() {
             <Button type="submit" loading={save.isPending}>Save Email Settings</Button>
           </div>
         </form>
+      )}
+
+      {/* Test Email — shown below the email settings form */}
+      {tab === 'Email' && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-4">
+          <h2 className="text-base font-semibold text-gray-900">Test SMTP Connection</h2>
+          <p className="text-sm text-gray-500">Send a test email to verify your SMTP settings are working correctly.</p>
+          <div className="flex gap-3 items-end">
+            <div className="flex-1">
+              <Input
+                label="Recipient Email"
+                type="email"
+                value={testEmailAddr}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTestEmailAddr(e.target.value)}
+                placeholder="your@email.com"
+              />
+            </div>
+            <Button
+              type="button"
+              loading={testEmail.isPending}
+              onClick={() => { if (testEmailAddr) testEmail.mutate(testEmailAddr); }}
+            >
+              Send Test Email
+            </Button>
+          </div>
+          {testEmailResult && (
+            <div className={`text-sm p-3 rounded-lg ${testEmailResult.success ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+              {testEmailResult.success ? '✅' : '❌'} {testEmailResult.message}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Notifications Tab */}
