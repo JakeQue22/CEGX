@@ -80,25 +80,23 @@ export class CustomerPortalService {
       throw new BadRequestException('Customer account not found');
     }
 
-    // Build data explicitly to avoid spreading unknown fields into Prisma
-    const orderData: any = {
+    // Build data with only defined optional fields
+    const optionalFields = [
+      'productId', 'deliveryLocation', 'deliveryStreet', 'deliveryStreet2',
+      'deliveryCity', 'deliveryCounty', 'deliveryPostcode', 'courierId', 'notes',
+    ] as const;
+    const orderData: Record<string, unknown> = {
       customerId,
       productName: dto.productName,
       quantity: dto.quantity,
     };
-    if (dto.productId) orderData.productId = dto.productId;
-    if (dto.deliveryLocation) orderData.deliveryLocation = dto.deliveryLocation;
-    if (dto.deliveryStreet) orderData.deliveryStreet = dto.deliveryStreet;
-    if (dto.deliveryStreet2) orderData.deliveryStreet2 = dto.deliveryStreet2;
-    if (dto.deliveryCity) orderData.deliveryCity = dto.deliveryCity;
-    if (dto.deliveryCounty) orderData.deliveryCounty = dto.deliveryCounty;
-    if (dto.deliveryPostcode) orderData.deliveryPostcode = dto.deliveryPostcode;
-    if (dto.courierId) orderData.courierId = dto.courierId;
-    if (dto.notes) orderData.notes = dto.notes;
+    for (const field of optionalFields) {
+      if (dto[field]) orderData[field] = dto[field];
+    }
 
     let order;
     try {
-      order = await this.prisma.customerOrder.create({ data: orderData });
+      order = await this.prisma.customerOrder.create({ data: orderData as any });
     } catch (err) {
       this.logger.error(`Failed to create customer order: ${err.message}`);
       throw new BadRequestException('Failed to create order. Please check your details and try again.');
