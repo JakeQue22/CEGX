@@ -54,8 +54,21 @@ export class CcsController {
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Scrape CCS website and sync frameworks and opportunities into database' })
   async syncFromCcs() {
-    const frameworkResult = await this.scraperService.syncFrameworks();
-    const opportunityResult = await this.scraperService.scrapeOpportunities();
+    let frameworkResult = { created: 0, updated: 0, errors: [] as string[] };
+    let opportunityResult = { created: 0, updated: 0, errors: [] as string[] };
+
+    try {
+      frameworkResult = await this.scraperService.syncFrameworks();
+    } catch (err) {
+      frameworkResult.errors.push(`Framework sync failed: ${err.message}`);
+    }
+
+    try {
+      opportunityResult = await this.scraperService.scrapeOpportunities();
+    } catch (err) {
+      opportunityResult.errors.push(`Opportunity sync failed: ${err.message}`);
+    }
+
     return {
       frameworks: frameworkResult,
       opportunities: opportunityResult,

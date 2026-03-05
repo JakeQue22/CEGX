@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Logger, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
@@ -9,6 +9,8 @@ import { PlaceOrderDto } from './dto/place-order.dto';
 
 @Injectable()
 export class CustomerPortalService {
+  private readonly logger = new Logger(CustomerPortalService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
@@ -70,22 +72,55 @@ export class CustomerPortalService {
   }
 
   async placeOrder(customerId: string, dto: PlaceOrderDto) {
-    const order = await this.prisma.customerOrder.create({
-      data: { customerId, ...dto },
+    // Validate the customer exists
+    const customer = await this.prisma.customer.findUnique({
+      where: { id: customerId },
     });
+    if (!customer) {
+      throw new BadRequestException('Customer account not found');
+    }
 
-    const admins = await this.prisma.user.findMany({
-      where: { role: { in: ['ADMIN', 'SALES_MANAGER'] }, isActive: true },
-    });
+    // Build data explicitly to avoid spreading unknown fields into Prisma
+    const orderData: any = {
+      customerId,
+      productName: dto.productName,
+      quantity: dto.quantity,
+    };
+    if (dto.productId) orderData.productId = dto.productId;
+    if (dto.deliveryLocation) orderData.deliveryLocation = dto.deliveryLocation;
+    if (dto.deliveryStreet) orderData.deliveryStreet = dto.deliveryStreet;
+    if (dto.deliveryStreet2) orderData.deliveryStreet2 = dto.deliveryStreet2;
+    if (dto.deliveryCity) orderData.deliveryCity = dto.deliveryCity;
+    if (dto.deliveryCounty) orderData.deliveryCounty = dto.deliveryCounty;
+    if (dto.deliveryPostcode) orderData.deliveryPostcode = dto.deliveryPostcode;
+    if (dto.courierId) orderData.courierId = dto.courierId;
+    if (dto.notes) orderData.notes = dto.notes;
 
-    for (const admin of admins) {
-      await this.notificationsService.create({
-        userId: admin.id,
-        title: 'New Customer Order',
-        message: `Order from customer for ${dto.quantity}x ${dto.productName}`,
-        type: 'CUSTOMER_ORDER',
-        link: '/customer-orders',
+    let order;
+    try {
+      order = await this.prisma.customerOrder.create({ data: orderData });
+    } catch (err) {
+      this.logger.error(`Failed to create customer order: ${err.message}`);
+      throw new BadRequestException('Failed to create order. Please check your details and try again.');
+    }
+
+    // Send notifications to admin/sales users (non-fatal — don't fail the order)
+    try {
+      const admins = await this.prisma.user.findMany({
+        where: { role: { in: ['ADMIN', 'SALES_MANAGER'] }, isActive: true },
       });
+
+      for (const admin of admins) {
+        await this.notificationsService.create({
+          userId: admin.id,
+          title: 'New Customer Order',
+          message: `Order from customer for ${dto.quantity}x ${dto.productName}`,
+          type: 'CUSTOMER_ORDER',
+          link: '/customer-orders',
+        });
+      }
+    } catch (err) {
+      this.logger.warn(`Failed to send order notifications: ${err.message}`);
     }
 
     return order;
