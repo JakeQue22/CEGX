@@ -17,6 +17,7 @@ interface EditForm {
   description: string;
   imageUrl: string;
   baseCostPrice: string;
+  retailPrice: string;
   minOrderQuantity: string;
   supplierId: string;
   categoryId: string;
@@ -29,6 +30,7 @@ function buildEditForm(product: Product): EditForm {
     description: product.description ?? '',
     imageUrl: product.imageUrl ?? '',
     baseCostPrice: String(product.baseCostPrice),
+    retailPrice: product.retailPrice != null ? String(product.retailPrice) : '',
     minOrderQuantity: String(product.minOrderQuantity ?? 1),
     supplierId: product.supplierId ?? '',
     categoryId: product.categoryId ?? '',
@@ -48,7 +50,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState<EditForm>({
     name: '', sku: '', description: '', imageUrl: '', baseCostPrice: '0',
-    minOrderQuantity: '1', supplierId: '', categoryId: '',
+    retailPrice: '', minOrderQuantity: '1', supplierId: '', categoryId: '',
   });
   const [editError, setEditError] = useState('');
 
@@ -114,6 +116,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       description: form.description || undefined,
       imageUrl: form.imageUrl || undefined,
       baseCostPrice: Number(form.baseCostPrice),
+      retailPrice: form.retailPrice ? Number(form.retailPrice) : undefined,
       minOrderQuantity: Number(form.minOrderQuantity),
       supplierId: form.supplierId || undefined,
       categoryId: form.categoryId || undefined,
@@ -128,16 +131,16 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   if (!product) return <div className="text-red-600">Product not found.</div>;
 
   // Determine unit cost based on bulk pricing
-  let unitCost = product.baseCostPrice;
+  let unitCost = Number(product.baseCostPrice);
   if (product.bulkPricings && product.bulkPricings.length > 0) {
     const matchedTier = product.bulkPricings
       .filter((t) => calcQty >= t.minQuantity)
       .sort((a, b) => b.minQuantity - a.minQuantity)[0];
-    if (matchedTier) unitCost = matchedTier.bulkCostPrice;
+    if (matchedTier) unitCost = Number(matchedTier.bulkCostPrice);
   }
 
   const totalCost = unitCost * calcQty;
-  const revenue = calcSalePrice;
+  const revenue = calcSalePrice || (product.retailPrice != null ? Number(product.retailPrice) * calcQty : 0);
   const grossProfit = revenue - totalCost;
   const margin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
 
@@ -161,9 +164,22 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             {product.isArchived && <Badge label="ARCHIVED" variant="neutral" />}
           </div>
         </div>
-        <div className="text-right">
-          <p className="text-xs text-gray-500">Base Cost</p>
-          <GBPAmount amount={product.baseCostPrice} className="text-xl font-bold text-gray-900" />
+        <div className="text-right space-y-1">
+          <div>
+            <p className="text-xs text-gray-500">Base Cost</p>
+            <GBPAmount amount={Number(product.baseCostPrice)} className="text-lg font-bold text-gray-900" />
+          </div>
+          {product.retailPrice != null && (
+            <div>
+              <p className="text-xs text-gray-500">Retail Price</p>
+              <GBPAmount amount={Number(product.retailPrice)} className="text-lg font-bold text-green-700" />
+            </div>
+          )}
+          {product.retailPrice != null && Number(product.retailPrice) > 0 && (
+            <p className="text-xs text-gray-500">
+              Margin: {(((Number(product.retailPrice) - Number(product.baseCostPrice)) / Number(product.retailPrice)) * 100).toFixed(1)}%
+            </p>
+          )}
         </div>
       </div>
 
@@ -194,7 +210,10 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           <Input label="Image URL" type="url" value={form.imageUrl} onChange={set('imageUrl')} placeholder="https://example.com/product-image.jpg" />
 
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Base Cost (£)" type="number" min={0} step={0.01} value={form.baseCostPrice} onChange={set('baseCostPrice')} />
+            <Input label="Base Cost (£)" type="number" min={0} step={0.01} value={form.baseCostPrice} onChange={set('baseCostPrice')} hint="Supplier cost" />
+            <Input label="Retail Price (£)" type="number" min={0} step={0.01} value={form.retailPrice} onChange={set('retailPrice')} placeholder="0.00" hint="Customer price" />
+          </div>
+          <div className="grid grid-cols-1 gap-4">
             <Input label="Min Order Quantity" type="number" min={1} step={1} value={form.minOrderQuantity} onChange={set('minOrderQuantity')} />
           </div>
 
@@ -233,7 +252,9 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           <h3 className="text-base font-semibold text-gray-900 mb-4">Details</h3>
           <dl className="grid grid-cols-2 gap-4">
             <div><dt className="text-xs text-gray-500">Supplier</dt><dd className="text-sm font-medium">{product.supplier?.name ?? '—'}</dd></div>
-            <div><dt className="text-xs text-gray-500">Base Cost</dt><dd className="text-sm font-medium"><GBPAmount amount={product.baseCostPrice} /></dd></div>
+            <div><dt className="text-xs text-gray-500">Base Cost</dt><dd className="text-sm font-medium"><GBPAmount amount={Number(product.baseCostPrice)} /></dd></div>
+            <div><dt className="text-xs text-gray-500">Retail Price</dt><dd className="text-sm font-medium">{product.retailPrice != null ? <GBPAmount amount={Number(product.retailPrice)} /> : '—'}</dd></div>
+            <div><dt className="text-xs text-gray-500">Min Order Qty</dt><dd className="text-sm font-medium">{product.minOrderQuantity ?? 1}</dd></div>
           </dl>
           {product.description && (
             <div className="mt-4 pt-4 border-t">

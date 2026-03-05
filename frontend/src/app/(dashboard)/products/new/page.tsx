@@ -20,7 +20,7 @@ export default function NewProductPage() {
   const router = useRouter();
   const [form, setForm] = useState({
     name: '', sku: '', description: '', imageUrl: '', baseCost: '0',
-    minOrderQty: '1', supplierId: '', categoryId: '',
+    retailPrice: '', minOrderQty: '1', supplierId: '', categoryId: '',
   });
   const [tiers, setTiers] = useState<BulkTier[]>([]);
   const [error, setError] = useState('');
@@ -69,6 +69,7 @@ export default function NewProductPage() {
       description: form.description || undefined,
       imageUrl: form.imageUrl || undefined,
       baseCostPrice: Number(form.baseCost),
+      retailPrice: form.retailPrice ? Number(form.retailPrice) : undefined,
       minOrderQuantity: Number(form.minOrderQty),
       supplierId: form.supplierId || undefined,
       categoryId: form.categoryId || undefined,
@@ -103,7 +104,10 @@ export default function NewProductPage() {
               className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
           <Input label="Image URL" type="url" value={form.imageUrl} onChange={set('imageUrl')} placeholder="https://example.com/product-image.jpg" />
-          <Input label="Base Cost (£)" type="number" min={0} step={0.01} value={form.baseCost} onChange={set('baseCost')} />
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="Base Cost (£)" type="number" min={0} step={0.01} value={form.baseCost} onChange={set('baseCost')} hint="What you pay the supplier" />
+            <Input label="Retail Price (£)" type="number" min={0} step={0.01} value={form.retailPrice} onChange={set('retailPrice')} placeholder="0.00" hint="What you charge the customer" />
+          </div>
           <Input label="Min Order Quantity" type="number" min={1} step={1} value={form.minOrderQty} onChange={set('minOrderQty')} />
           <div className="grid grid-cols-2 gap-4">
             <div>

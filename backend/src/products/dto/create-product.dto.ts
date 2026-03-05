@@ -69,6 +69,12 @@ export class CreateProductDto {
   @Min(0)
   baseCostPrice: number;
 
+  @ApiPropertyOptional({ description: 'Retail/selling price shown to customers', minimum: 0 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  retailPrice?: number;
+
   @ApiPropertyOptional({ default: 20, minimum: 0, maximum: 100 })
   @IsOptional()
   @IsNumber()

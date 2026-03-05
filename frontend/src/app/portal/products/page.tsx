@@ -23,6 +23,7 @@ interface Product {
   description?: string;
   imageUrl?: string;
   baseCostPrice?: number;
+  retailPrice?: number;
   minOrderQuantity?: number;
 }
 
@@ -197,11 +198,15 @@ export default function CustomerProductsPage() {
                 {product.description && (
                   <p className="text-sm text-gray-600 mb-4 line-clamp-3">{product.description}</p>
                 )}
-                {product.baseCostPrice != null && (
+                {product.retailPrice != null ? (
                   <p className="text-lg font-bold text-gray-900 mb-4">
-                    ${product.baseCostPrice.toFixed(2)}
+                    £{Number(product.retailPrice).toFixed(2)}
                   </p>
-                )}
+                ) : product.baseCostPrice != null ? (
+                  <p className="text-lg font-bold text-gray-900 mb-4">
+                    £{Number(product.baseCostPrice).toFixed(2)}
+                  </p>
+                ) : null}
                 {product.minOrderQuantity && product.minOrderQuantity > 1 && (
                   <p className="text-xs text-gray-500 mb-4">
                     Min. order: {product.minOrderQuantity} units

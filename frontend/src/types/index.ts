@@ -145,6 +145,7 @@ export interface Product {
   description?: string;
   imageUrl?: string;
   baseCostPrice: number;
+  retailPrice?: number;
   vatPercent?: number;
   adPercent?: number;
   categoryId?: string;
