@@ -312,6 +312,7 @@ export type OutreachEmailStatus = 'DRAFT' | 'QUEUED' | 'SENT' | 'DELIVERED' | 'O
 export interface LinkedInAccount {
   id: string;
   email: string;
+  password?: string;
   name?: string;
   profileUrl?: string;
   isActive: boolean;

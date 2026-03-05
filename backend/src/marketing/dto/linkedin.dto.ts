@@ -9,6 +9,11 @@ export class CreateLinkedInAccountDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  password?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
   name?: string;
 
   @ApiPropertyOptional()

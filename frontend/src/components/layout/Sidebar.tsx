@@ -181,7 +181,11 @@ export function Sidebar() {
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto scrollbar-thin">
         {navItems.map((item) => {
-          const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+          const isExactMatch = pathname === item.href;
+          const isChildMatch = item.href !== '/dashboard' && pathname.startsWith(item.href + '/');
+          // Prevent /marketing from highlighting when on /marketing/leads or /marketing/linkedin
+          const isOverriddenByChild = item.href === '/marketing' && (pathname.startsWith('/marketing/leads') || pathname.startsWith('/marketing/linkedin'));
+          const isActive = isExactMatch || (isChildMatch && !isOverriddenByChild);
           return (
             <Link
               key={item.href}

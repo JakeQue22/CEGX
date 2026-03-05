@@ -23,6 +23,7 @@ export class LinkedInService {
     return this.prisma.linkedInAccount.create({
       data: {
         email: dto.email,
+        password: dto.password,
         name: dto.name,
         profileUrl: dto.profileUrl,
         sessionData: dto.sessionData,

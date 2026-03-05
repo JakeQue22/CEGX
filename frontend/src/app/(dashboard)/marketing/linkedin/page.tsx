@@ -10,7 +10,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 export default function LinkedInAccountsPage() {
   const queryClient = useQueryClient();
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newAccount, setNewAccount] = useState({ email: '', name: '', profileUrl: '' });
+  const [newAccount, setNewAccount] = useState({ email: '', password: '', name: '', profileUrl: '' });
 
   const { data, isLoading } = useQuery<LinkedInAccount[]>({
     queryKey: ['linkedin-accounts'],
@@ -23,7 +23,7 @@ export default function LinkedInAccountsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['linkedin-accounts'] });
       setShowAddForm(false);
-      setNewAccount({ email: '', name: '', profileUrl: '' });
+      setNewAccount({ email: '', password: '', name: '', profileUrl: '' });
     },
   });
 
@@ -56,13 +56,14 @@ export default function LinkedInAccountsPage() {
       {showAddForm && (
         <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
           <h2 className="font-semibold text-gray-900">Add LinkedIn Account</h2>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <input type="email" placeholder="LinkedIn Email *" required value={newAccount.email} onChange={(e) => setNewAccount({ ...newAccount, email: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+            <input type="password" placeholder="LinkedIn Password *" required value={newAccount.password} onChange={(e) => setNewAccount({ ...newAccount, password: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
             <input type="text" placeholder="Display Name" value={newAccount.name} onChange={(e) => setNewAccount({ ...newAccount, name: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
             <input type="text" placeholder="Profile URL" value={newAccount.profileUrl} onChange={(e) => setNewAccount({ ...newAccount, profileUrl: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
           </div>
           <div className="flex gap-2">
-            <button onClick={() => createAccount.mutate(newAccount)} disabled={!newAccount.email || createAccount.isPending} className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition disabled:opacity-50">
+            <button onClick={() => createAccount.mutate(newAccount)} disabled={!newAccount.email || !newAccount.password || createAccount.isPending} className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition disabled:opacity-50">
               {createAccount.isPending ? 'Adding...' : 'Add Account'}
             </button>
             <button onClick={() => setShowAddForm(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Cancel</button>
