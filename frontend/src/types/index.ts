@@ -44,6 +44,7 @@ export interface CompanySettings {
   defaultAdPercent: number;
   smtpHost?: string;
   smtpPort?: number;
+  smtpSecure?: boolean;
   smtpUser?: string;
   smtpPass?: string;
   smtpSenderName?: string;
@@ -136,6 +137,7 @@ export interface Product {
   name: string;
   sku: string;
   description?: string;
+  imageUrl?: string;
   baseCostPrice: number;
   vatPercent?: number;
   adPercent?: number;

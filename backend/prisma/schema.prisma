@@ -54,6 +54,7 @@ model CompanySettings {
   smtpSenderName       String   @default("CEGX CRM") @map("emailSenderName")
   smtpHost             String?
   smtpPort             Int?
+  smtpSecure           Boolean  @default(false)
   smtpUser             String?
   smtpPass             String?
   notifyOnDealCreated  Boolean  @default(true)
@@ -105,6 +106,7 @@ model Product {
   sku             String          @unique
   name            String
   description     String?
+  imageUrl        String?
   categoryId      String?
   category        ProductCategory? @relation(fields: [categoryId], references: [id])
   supplierId      String?

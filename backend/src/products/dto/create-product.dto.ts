@@ -49,6 +49,11 @@ export class CreateProductDto {
   @IsString()
   description?: string;
 
+  @ApiPropertyOptional({ description: 'Product image URL for display in customer portal' })
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()

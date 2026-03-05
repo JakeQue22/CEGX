@@ -19,7 +19,7 @@ interface BulkTier {
 export default function NewProductPage() {
   const router = useRouter();
   const [form, setForm] = useState({
-    name: '', sku: '', description: '', baseCost: '0',
+    name: '', sku: '', description: '', imageUrl: '', baseCost: '0',
     minOrderQty: '1', supplierId: '', categoryId: '',
   });
   const [tiers, setTiers] = useState<BulkTier[]>([]);
@@ -67,6 +67,7 @@ export default function NewProductPage() {
       name: form.name,
       sku: form.sku,
       description: form.description || undefined,
+      imageUrl: form.imageUrl || undefined,
       baseCostPrice: Number(form.baseCost),
       minOrderQuantity: Number(form.minOrderQty),
       supplierId: form.supplierId || undefined,
@@ -101,6 +102,7 @@ export default function NewProductPage() {
             <textarea value={form.description} onChange={set('description')} rows={3}
               className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
+          <Input label="Image URL" type="url" value={form.imageUrl} onChange={set('imageUrl')} placeholder="https://example.com/product-image.jpg" />
           <Input label="Base Cost (£)" type="number" min={0} step={0.01} value={form.baseCost} onChange={set('baseCost')} />
           <Input label="Min Order Quantity" type="number" min={1} step={1} value={form.minOrderQty} onChange={set('minOrderQty')} />
           <div className="grid grid-cols-2 gap-4">

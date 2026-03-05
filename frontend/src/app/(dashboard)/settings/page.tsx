@@ -201,6 +201,15 @@ export default function SettingsPage() {
           <h2 className="text-base font-semibold text-gray-900">SMTP Configuration</h2>
           <Input label="SMTP Host" value={emailMerged.smtpHost ?? ''} onChange={setE('smtpHost')} placeholder="smtp.gmail.com" />
           <Input label="SMTP Port" type="number" value={emailMerged.smtpPort ?? 587} onChange={setE('smtpPort')} />
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={emailMerged.smtpSecure ?? false}
+              onChange={(e) => setEmailForm((f) => ({ ...f, smtpSecure: e.target.checked }))}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-700">Use SSL/TLS</span>
+          </label>
           <Input label="SMTP Username" value={emailMerged.smtpUser ?? ''} onChange={setE('smtpUser')} placeholder="user@company.com" />
           <Input label="SMTP Password" type="password" value={emailMerged.smtpPass ?? ''} onChange={setE('smtpPass')} placeholder="••••••••" />
           <Input label="Sender Name" value={emailMerged.smtpSenderName ?? ''} onChange={setE('smtpSenderName')} placeholder="CEGX Team" />

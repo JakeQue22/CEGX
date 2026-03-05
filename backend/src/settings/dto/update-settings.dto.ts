@@ -64,6 +64,11 @@ export class UpdateSettingsDto {
   @IsInt()
   smtpPort?: number;
 
+  @ApiPropertyOptional({ description: 'Use SSL/TLS for SMTP connection' })
+  @IsOptional()
+  @IsBoolean()
+  smtpSecure?: boolean;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()

@@ -16,11 +16,12 @@ function getCustomerAxios() {
 }
 
 interface Product {
-  _id: string;
+  id: string;
   name: string;
   sku: string;
-  category: string;
+  category?: { id: string; name: string } | null;
   description?: string;
+  imageUrl?: string;
   baseCostPrice?: number;
   minOrderQuantity?: number;
 }
@@ -65,7 +66,7 @@ export default function CustomerProductsPage() {
 
   function openOrderForm(product: Product) {
     const min = product.minOrderQuantity || 1;
-    setOrderProductId(product._id);
+    setOrderProductId(product.id);
     setOrderProductName(product.name);
     setMinQty(min);
     setQuantity(min);
@@ -171,15 +172,26 @@ export default function CustomerProductsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {products.map((product) => (
             <div
-              key={product._id}
+              key={product.id}
               className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
             >
+              {product.imageUrl && (
+                <div className="aspect-video bg-gray-100 overflow-hidden">
+                  <img
+                    src={product.imageUrl}
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
               <div className="p-6">
                 <div className="flex items-start justify-between mb-3">
                   <h3 className="text-lg font-semibold text-gray-900 leading-tight">{product.name}</h3>
-                  <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 whitespace-nowrap">
-                    {product.category}
-                  </span>
+                  {product.category && (
+                    <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 whitespace-nowrap">
+                      {product.category.name}
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs text-gray-400 mb-2 font-mono">SKU: {product.sku}</p>
                 {product.description && (
@@ -196,7 +208,7 @@ export default function CustomerProductsPage() {
                   </p>
                 )}
 
-                {orderProductId === product._id ? (
+                {orderProductId === product.id ? (
                   <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
                     <h4 className="text-sm font-semibold text-gray-900">Request Order</h4>
 

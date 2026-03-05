@@ -15,6 +15,7 @@ interface EditForm {
   name: string;
   sku: string;
   description: string;
+  imageUrl: string;
   baseCostPrice: string;
   minOrderQuantity: string;
   supplierId: string;
@@ -26,6 +27,7 @@ function buildEditForm(product: Product): EditForm {
     name: product.name,
     sku: product.sku,
     description: product.description ?? '',
+    imageUrl: product.imageUrl ?? '',
     baseCostPrice: String(product.baseCostPrice),
     minOrderQuantity: String(product.minOrderQuantity ?? 1),
     supplierId: product.supplierId ?? '',
@@ -45,7 +47,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   // Edit mode
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState<EditForm>({
-    name: '', sku: '', description: '', baseCostPrice: '0',
+    name: '', sku: '', description: '', imageUrl: '', baseCostPrice: '0',
     minOrderQuantity: '1', supplierId: '', categoryId: '',
   });
   const [editError, setEditError] = useState('');
@@ -110,6 +112,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       name: form.name,
       sku: form.sku,
       description: form.description || undefined,
+      imageUrl: form.imageUrl || undefined,
       baseCostPrice: Number(form.baseCostPrice),
       minOrderQuantity: Number(form.minOrderQuantity),
       supplierId: form.supplierId || undefined,
@@ -187,6 +190,8 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+
+          <Input label="Image URL" type="url" value={form.imageUrl} onChange={set('imageUrl')} placeholder="https://example.com/product-image.jpg" />
 
           <div className="grid grid-cols-2 gap-4">
             <Input label="Base Cost (£)" type="number" min={0} step={0.01} value={form.baseCostPrice} onChange={set('baseCostPrice')} />
