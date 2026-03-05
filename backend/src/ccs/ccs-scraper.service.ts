@@ -164,27 +164,19 @@ export class CcsScraperService {
       }
 
       // Extract dates, values, category, regulation from summary list / key info
-      $('dt, .govuk-summary-list__key, th').each((_i, el) => {
+      // Handle GOV.UK summary lists (dt/dd pairs)
+      $('dt, .govuk-summary-list__key').each((_i, el) => {
         const label = $(el).text().trim().toLowerCase();
-        const value = $(el).next('dd, .govuk-summary-list__value, td').text().trim();
+        const value = $(el).next('dd, .govuk-summary-list__value').text().trim();
+        this.extractKeyValueField(label, value, result);
+      });
 
-        if (label.includes('start date') || label.includes('start')) {
-          result.startDate = this.parseUKDate(value);
-        }
-        if (label.includes('end date') || label.includes('end') || label.includes('expiry')) {
-          result.endDate = this.parseUKDate(value);
-        }
-        if (label.includes('value') || label.includes('maximum')) {
-          result.maxValue = this.parseGBPValue(value);
-        }
-        if (label.includes('category') || label.includes('pillar')) {
-          result.category = value;
-        }
-        if (label.includes('status')) {
-          result.status = this.normaliseStatus(value);
-        }
-        if (label.includes('regulation') || label.includes('pcr')) {
-          result.regulation = value;
+      // Handle table-based key-value pairs (th/td pairs within rows)
+      $('table tr').each((_i, row) => {
+        const th = $(row).find('th').first().text().trim().toLowerCase();
+        const td = $(row).find('td').first().text().trim();
+        if (th && td) {
+          this.extractKeyValueField(th, td, result);
         }
       });
 
@@ -377,6 +369,31 @@ export class CcsScraperService {
       `CCS sync complete: ${summary.created} created, ${summary.updated} updated, ${summary.errors.length} errors`,
     );
     return summary;
+  }
+
+  private extractKeyValueField(
+    label: string,
+    value: string,
+    result: Partial<ScrapedFramework>,
+  ): void {
+    if (label.includes('start date') || (label.includes('start') && !label.includes('status'))) {
+      result.startDate = this.parseUKDate(value);
+    }
+    if (label.includes('end date') || label.includes('expiry')) {
+      result.endDate = this.parseUKDate(value);
+    }
+    if (label.includes('value') || label.includes('maximum')) {
+      result.maxValue = this.parseGBPValue(value);
+    }
+    if (label.includes('category') || label.includes('pillar')) {
+      result.category = value;
+    }
+    if (label.includes('status')) {
+      result.status = this.normaliseStatus(value);
+    }
+    if (label.includes('regulation') || label.includes('pcr')) {
+      result.regulation = value;
+    }
   }
 
   private normaliseStatus(raw: string): string {

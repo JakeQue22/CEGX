@@ -139,8 +139,8 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
       notes: form.notes || undefined,
       status: form.status,
       pipelineStageId: form.pipelineStageId || undefined,
-      productId: form.productId || null,
-      categoryId: form.categoryId || null,
+      productId: form.productId || undefined,
+      categoryId: form.categoryId || undefined,
     };
     updateMutation.mutate(payload);
   };
