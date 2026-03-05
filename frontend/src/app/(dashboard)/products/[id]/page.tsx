@@ -105,7 +105,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       setEditError('Name and SKU are required.');
       return;
     }
-    // Only send whitelisted DTO fields
+    // Only send allowlisted DTO fields
     updateProduct.mutate({
       name: form.name,
       sku: form.sku,
