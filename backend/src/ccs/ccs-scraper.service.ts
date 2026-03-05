@@ -100,6 +100,7 @@ export class CcsScraperService {
     const seenRefs = new Set<string>();
     let page = 1;
     const maxPages = 20; // safety limit
+    let consecutiveFailures = 0;
 
     while (page <= maxPages) {
       const url = page === 1
@@ -107,7 +108,25 @@ export class CcsScraperService {
         : `${this.baseUrl}/agreements?page=${page}`;
 
       this.logger.log(`Scraping CCS agreements page ${page}: ${url}`);
-      const html = await this.fetchPage(url);
+
+      let html: string;
+      try {
+        html = await this.fetchPage(url);
+      } catch (err) {
+        consecutiveFailures++;
+        this.logger.warn(`Failed to fetch page ${page}: ${(err as Error).message}`);
+        // If page 1 fails, throw — we can't do anything without it
+        if (page === 1) throw err;
+        // If multiple consecutive pages fail, stop trying
+        if (consecutiveFailures >= 2) {
+          this.logger.warn(`${consecutiveFailures} consecutive page failures, stopping pagination`);
+          break;
+        }
+        page++;
+        continue;
+      }
+      consecutiveFailures = 0;
+
       const $ = cheerio.load(html);
       let foundOnPage = 0;
 
@@ -388,50 +407,52 @@ export class CcsScraperService {
             summary.created++;
           }
 
-          // Try to scrape detail page for lots and additional content
-          try {
-            const detail = await this.scrapeFrameworkDetail(fw.reference);
-            const dbFw = await this.prisma.ccsFramework.findFirst({ where: { reference: fw.reference } });
+          // Try to scrape detail page only for NEW frameworks (to avoid excessive requests)
+          if (!existing) {
+            try {
+              const detail = await this.scrapeFrameworkDetail(fw.reference);
+              const dbFw = await this.prisma.ccsFramework.findFirst({ where: { reference: fw.reference } });
 
-            if (dbFw) {
-              // Update framework with additional detail (even if no lots found)
-              if (detail.description || detail.startDate || detail.endDate || detail.benefits || detail.productsServices || detail.howToBuy || detail.regulation) {
-                await this.prisma.ccsFramework.update({
-                  where: { id: dbFw.id },
-                  data: {
-                    description: detail.description || dbFw.description,
-                    startDate: detail.startDate ? new Date(detail.startDate) : dbFw.startDate,
-                    endDate: detail.endDate ? new Date(detail.endDate) : dbFw.endDate,
-                    maxValue: detail.maxValue ?? dbFw.maxValue,
-                    category: detail.category || dbFw.category,
-                    status: detail.status || dbFw.status,
-                    benefits: detail.benefits || dbFw.benefits,
-                    productsServices: detail.productsServices || dbFw.productsServices,
-                    howToBuy: detail.howToBuy || dbFw.howToBuy,
-                    regulation: detail.regulation || dbFw.regulation,
-                  },
-                });
-              }
-
-              for (const lot of detail.lots) {
-                const existingLot = await this.prisma.ccsLot.findFirst({
-                  where: { frameworkId: dbFw.id, lotNumber: lot.lotNumber },
-                });
-                if (!existingLot) {
-                  await this.prisma.ccsLot.create({
+              if (dbFw) {
+                // Update framework with additional detail (even if no lots found)
+                if (detail.description || detail.startDate || detail.endDate || detail.benefits || detail.productsServices || detail.howToBuy || detail.regulation) {
+                  await this.prisma.ccsFramework.update({
+                    where: { id: dbFw.id },
                     data: {
-                      frameworkId: dbFw.id,
-                      lotNumber: lot.lotNumber,
-                      title: lot.title,
-                      description: lot.description,
+                      description: detail.description || dbFw.description,
+                      startDate: detail.startDate ? new Date(detail.startDate) : dbFw.startDate,
+                      endDate: detail.endDate ? new Date(detail.endDate) : dbFw.endDate,
+                      maxValue: detail.maxValue ?? dbFw.maxValue,
+                      category: detail.category || dbFw.category,
+                      status: detail.status || dbFw.status,
+                      benefits: detail.benefits || dbFw.benefits,
+                      productsServices: detail.productsServices || dbFw.productsServices,
+                      howToBuy: detail.howToBuy || dbFw.howToBuy,
+                      regulation: detail.regulation || dbFw.regulation,
                     },
                   });
                 }
+
+                for (const lot of detail.lots) {
+                  const existingLot = await this.prisma.ccsLot.findFirst({
+                    where: { frameworkId: dbFw.id, lotNumber: lot.lotNumber },
+                  });
+                  if (!existingLot) {
+                    await this.prisma.ccsLot.create({
+                      data: {
+                        frameworkId: dbFw.id,
+                        lotNumber: lot.lotNumber,
+                        title: lot.title,
+                        description: lot.description,
+                      },
+                    });
+                  }
+                }
               }
+            } catch (detailErr) {
+              // Non-fatal — we still have the basic framework data
+              this.logger.warn(`Could not scrape detail for ${fw.reference}: ${detailErr.message}`);
             }
-          } catch (detailErr) {
-            // Non-fatal — we still have the basic framework data
-            this.logger.warn(`Could not scrape detail for ${fw.reference}: ${detailErr.message}`);
           }
 
           // Small delay to be respectful to CCS servers

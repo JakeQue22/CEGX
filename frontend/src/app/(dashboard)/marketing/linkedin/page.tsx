@@ -37,8 +37,9 @@ export default function LinkedInAccountsPage() {
       const statsInfo = stats
         ? ` — ${stats.connections} connections, ${stats.messages} messages, ${stats.activeConnections} active`
         : '';
-      setSyncMessage(`✅ Sync complete for ${email}${statsInfo}.`);
-      setTimeout(() => setSyncMessage(null), 8000);
+      const note = data?.note ? `\n${data.note}` : '';
+      setSyncMessage(`✅ Sync complete for ${email}${statsInfo}.${note}`);
+      setTimeout(() => setSyncMessage(null), 12000);
     },
     onError: () => {
       setSyncMessage('❌ Failed to sync — please try again');

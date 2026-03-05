@@ -199,8 +199,7 @@ export class LinkedInService {
       include: {
         _count: { select: { connections: true, messages: true } },
         connections: {
-          where: { status: 'CONNECTED' },
-          select: { id: true },
+          select: { id: true, status: true, createdAt: true },
         },
       },
     });
@@ -212,20 +211,39 @@ export class LinkedInService {
       data: { lastSyncAt: new Date() },
     });
 
-    // Queue the background sync job for browser automation
-    await this.marketingQueue.add('linkedin-sync', { accountId });
+    // Mark stale pending connections (older than 30 days) as expired
+    const STALE_THRESHOLD_DAYS = 30;
+    const cutoffDate = new Date(Date.now() - STALE_THRESHOLD_DAYS * 24 * 60 * 60 * 1000);
+    const staleConnections = account.connections.filter(
+      (c) => c.status === 'PENDING' && c.createdAt < cutoffDate,
+    );
+    for (const conn of staleConnections) {
+      await this.prisma.linkedInConnection.update({
+        where: { id: conn.id },
+        data: { status: 'EXPIRED' },
+      });
+    }
 
-    this.logger.log(`Sync triggered for LinkedIn account ${accountId} (${account.email})`);
+    const activeConnections = account.connections.filter((c) => c.status === 'CONNECTED').length;
+    const pendingConnections = account.connections.filter((c) => c.status === 'PENDING').length;
+
+    this.logger.log(
+      `LinkedIn sync for ${account.email}: ${account._count.connections} connections, ${account._count.messages} messages, ${staleConnections.length} expired`,
+    );
+
     return {
-      message: 'Sync started',
+      message: 'Sync complete',
       accountId,
       email: account.email,
       lastSyncAt: new Date().toISOString(),
       stats: {
         connections: account._count.connections,
         messages: account._count.messages,
-        activeConnections: account.connections.length,
+        activeConnections,
+        pendingConnections,
+        expiredThisSync: staleConnections.length,
       },
+      note: 'Automated LinkedIn data import requires browser automation (Puppeteer/Playwright) which is not yet configured. Add connections manually via the Connect feature or import them through the API.',
     };
   }
 }
