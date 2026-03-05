@@ -2,17 +2,23 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import axiosInstance from '@/lib/axios';
+import { User } from '@/types';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 
 export default function NewSupplierPage() {
   const router = useRouter();
   const [form, setForm] = useState({
-    name: '', email: '', phone: '', country: '', rating: '', notes: '',
+    name: '', contactName: '', email: '', phone: '', country: '', rating: '', notes: '', salesPersonId: '',
   });
   const [error, setError] = useState('');
+
+  const { data: users = [] } = useQuery<User[]>({
+    queryKey: ['users-list'],
+    queryFn: () => axiosInstance.get('/users').then((r) => Array.isArray(r.data) ? r.data : r.data.data ?? []),
+  });
 
   const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -32,11 +38,13 @@ export default function NewSupplierPage() {
     if (!form.name) { setError('Name is required.'); return; }
     create.mutate({
       name: form.name,
+      contactName: form.contactName || undefined,
       contactEmail: form.email || undefined,
       contactPhone: form.phone || undefined,
       country: form.country || undefined,
       rating: form.rating ? Number(form.rating) : undefined,
       notes: form.notes || undefined,
+      salesPersonId: form.salesPersonId || undefined,
     });
   }
 
@@ -50,6 +58,7 @@ export default function NewSupplierPage() {
       <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-4">
         {error && <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">{error}</div>}
         <Input label="Company Name *" value={form.name} onChange={set('name')} required placeholder="Acme Ltd" />
+        <Input label="Contact Name" value={form.contactName} onChange={set('contactName')} placeholder="John Smith" />
         <Input label="Contact Email" type="email" value={form.email} onChange={set('email')} placeholder="contact@acme.com" />
         <Input label="Contact Phone" type="tel" value={form.phone} onChange={set('phone')} placeholder="+44 20 1234 5678" />
         <Input label="Country" value={form.country} onChange={set('country')} placeholder="United Kingdom" />
@@ -65,6 +74,14 @@ export default function NewSupplierPage() {
           <label className="block text-sm font-medium text-gray-700 mb-1.5">Notes</label>
           <textarea value={form.notes} onChange={set('notes')} rows={3}
             className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">Sales Person</label>
+          <select value={form.salesPersonId} onChange={set('salesPersonId')}
+            className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">No sales person</option>
+            {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+          </select>
         </div>
         <div className="flex gap-3 pt-2">
           <Button type="submit" loading={create.isPending}>Create Supplier</Button>

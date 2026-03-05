@@ -31,7 +31,8 @@ export default function SuppliersPage() {
 
   const columns: Column<Supplier>[] = [
     { key: 'name', header: 'Name', sortable: true, render: (s) => <span className="font-medium text-gray-900">{s.name}</span> },
-    { key: 'contactEmail', header: 'Contact', render: (s) => s.contactEmail ?? '—' },
+    { key: 'contactName', header: 'Contact Name', render: (s) => s.contactName ?? '—' },
+    { key: 'contactEmail', header: 'Contact Email', render: (s) => s.contactEmail ?? '—' },
     { key: 'contactPhone', header: 'Phone', render: (s) => s.contactPhone ?? '—' },
     { key: 'country', header: 'Country', sortable: true, render: (s) => s.country ?? '—' },
     { key: 'rating', header: 'Rating', sortable: true, render: (s) => s.rating != null ? (
