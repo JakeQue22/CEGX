@@ -1,10 +1,10 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import axiosInstance from '@/lib/axios';
-import { EmailCampaign, CampaignRecipient } from '@/types';
+import { EmailCampaign, CampaignRecipient, EmailList } from '@/types';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -21,6 +21,30 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
   const sendNow = useMutation({
     mutationFn: () => axiosInstance.post(`/campaigns/${id}/send`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['campaign', id] }),
+  });
+
+  const { data: emailLists } = useQuery<EmailList[]>({
+    queryKey: ['email-lists'],
+    queryFn: () => axiosInstance.get('/email-lists').then((r) =>
+      Array.isArray(r.data) ? r.data : []),
+  });
+
+  const [selectedListId, setSelectedListId] = useState('');
+  const [addListMsg, setAddListMsg] = useState('');
+
+  const addFromList = useMutation({
+    mutationFn: (listId: string) =>
+      axiosInstance.post(`/email-lists/${listId}/add-to-campaign/${id}`).then((r) => r.data),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['campaign', id] });
+      setAddListMsg(`✅ Added ${result.added} recipients from list`);
+      setSelectedListId('');
+      setTimeout(() => setAddListMsg(''), 5000);
+    },
+    onError: () => {
+      setAddListMsg('❌ Failed to add recipients from list');
+      setTimeout(() => setAddListMsg(''), 5000);
+    },
   });
 
   if (isLoading) return <LoadingSpinner />;
@@ -71,6 +95,35 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
           {campaign.body}
         </div>
       </div>
+
+      {/* Add from Email List */}
+      {campaign.status !== 'SENT' && emailLists && emailLists.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm space-y-3">
+          <h3 className="text-base font-semibold text-gray-900">Add Recipients from Email List</h3>
+          <div className="flex items-center gap-3">
+            <select
+              value={selectedListId}
+              onChange={(e) => setSelectedListId(e.target.value)}
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            >
+              <option value="">Select an email list...</option>
+              {emailLists.map((list) => (
+                <option key={list.id} value={list.id}>
+                  {list.name} ({list._count?.entries ?? 0} contacts)
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => selectedListId && addFromList.mutate(selectedListId)}
+              disabled={!selectedListId || addFromList.isPending}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition disabled:opacity-50"
+            >
+              {addFromList.isPending ? 'Adding...' : 'Add to Campaign'}
+            </button>
+          </div>
+          {addListMsg && <p className="text-sm text-blue-800">{addListMsg}</p>}
+        </div>
+      )}
 
       {/* Recipients */}
       {campaign.recipients && campaign.recipients.length > 0 && (

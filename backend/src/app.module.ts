@@ -26,6 +26,7 @@ import { GrokModule } from './grok/grok.module';
 import { CustomerOrdersModule } from './customer-orders/customer-orders.module';
 import { CustomerPortalModule } from './customer-portal/customer-portal.module';
 import { CcsModule } from './ccs/ccs.module';
+import { EmailListsModule } from './email-lists/email-lists.module';
 
 @Module({
   imports: [
@@ -70,6 +71,7 @@ import { CcsModule } from './ccs/ccs.module';
     CustomerOrdersModule,
     CustomerPortalModule,
     CcsModule,
+    EmailListsModule,
   ],
 })
 export class AppModule {}

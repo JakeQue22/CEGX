@@ -267,6 +267,30 @@ model CampaignRecipient {
   @@map("campaign_recipients")
 }
 
+model EmailList {
+  id        String   @id @default(cuid())
+  name      String
+  columns   Json     // Array of column names from the uploaded CSV
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  entries EmailListEntry[]
+
+  @@map("email_lists")
+}
+
+model EmailListEntry {
+  id        String   @id @default(cuid())
+  listId    String
+  list      EmailList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  email     String
+  name      String?
+  data      Json?    // Full row data as key-value pairs from CSV columns
+  createdAt DateTime @default(now())
+
+  @@map("email_list_entries")
+}
+
 model Notification {
   id        String   @id @default(cuid())
   userId    String

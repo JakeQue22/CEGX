@@ -34,15 +34,10 @@ export default function LinkedInAccountsPage() {
       queryClient.invalidateQueries({ queryKey: ['linkedin-accounts'] });
       const email = data?.email ?? 'account';
       const stats = data?.stats;
-      const hasData = stats && (stats.connections > 0 || stats.messages > 0);
       const statsInfo = stats
-        ? ` — ${stats.connections} connections, ${stats.messages} messages tracked`
+        ? ` — ${stats.connections} connections, ${stats.messages} messages, ${stats.activeConnections} active`
         : '';
-      setSyncMessage(
-        hasData
-          ? `✅ Sync complete for ${email}${statsInfo}. Stale pending connections marked as expired.`
-          : `✅ Sync triggered for ${email}. Add connections via the Connect button or import them to start tracking.`
-      );
+      setSyncMessage(`✅ Sync complete for ${email}${statsInfo}.`);
       setTimeout(() => setSyncMessage(null), 8000);
     },
     onError: () => {
@@ -144,7 +139,7 @@ export default function LinkedInAccountsPage() {
                   disabled={syncAccount.isPending}
                   className="flex-1 px-3 py-2 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition disabled:opacity-50"
                 >
-                  {syncAccount.isPending ? 'Syncing...' : 'Sync Inbox'}
+                  {syncAccount.isPending ? 'Syncing...' : 'Sync'}
                 </button>
                 {account.profileUrl && (
                   <a

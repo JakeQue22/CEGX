@@ -269,6 +269,25 @@ export interface CampaignRecipient {
   openedAt?: string;
 }
 
+export interface EmailList {
+  id: string;
+  name: string;
+  columns: string[];
+  _count?: { entries: number };
+  entries?: EmailListEntry[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EmailListEntry {
+  id: string;
+  listId: string;
+  email: string;
+  name?: string;
+  data?: Record<string, string>;
+  createdAt: string;
+}
+
 export interface Notification {
   id: string;
   type: NotificationType;
