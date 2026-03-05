@@ -25,8 +25,8 @@ export default function CcsOverviewPage() {
   const syncMutation = useMutation({
     mutationFn: () => axiosInstance.post('/ccs/scrape/sync').then((r) => r.data),
     onSuccess: (data) => {
-      // Handle nested response shape: { frameworks: {...}, opportunities: {...} }
-      const fw = data?.frameworks ?? data ?? { created: 0, updated: 0, errors: [] };
+      // Response shape: { frameworks: {created, updated, errors}, opportunities: {created, updated, errors} }
+      const fw = data?.frameworks ?? { created: 0, updated: 0, errors: [] };
       const opp = data?.opportunities ?? { created: 0, updated: 0, errors: [] };
       const allErrors = [...(fw.errors ?? []), ...(opp.errors ?? [])];
       setSyncResult({

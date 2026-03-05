@@ -32,8 +32,12 @@ export default function LinkedInAccountsPage() {
     mutationFn: (accountId: string) => axiosInstance.post(`/marketing/linkedin/sync/${accountId}`).then((r) => r.data),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['linkedin-accounts'] });
+      const email = data?.email ?? 'account';
       const stats = data?.stats;
-      setSyncMessage(`Sync started for ${data?.email ?? 'account'}${stats ? ` — ${stats.connections} connections, ${stats.messages} messages` : ''}`);
+      const statsInfo = stats
+        ? ` — ${stats.connections} connections, ${stats.messages} messages`
+        : '';
+      setSyncMessage(`Sync started for ${email}${statsInfo}`);
       setTimeout(() => setSyncMessage(null), 5000);
     },
     onError: () => {

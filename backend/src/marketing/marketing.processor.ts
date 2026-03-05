@@ -76,10 +76,11 @@ export class MarketingProcessor {
       return;
     }
 
-    // Mark stale pending connections (older than 30 days) as expired
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    // Mark stale pending connections (older than threshold) as expired
+    const STALE_THRESHOLD_DAYS = 30;
+    const cutoffDate = new Date(Date.now() - STALE_THRESHOLD_DAYS * 24 * 60 * 60 * 1000);
     const staleConnections = account.connections.filter(
-      (c) => c.createdAt < thirtyDaysAgo,
+      (c) => c.createdAt < cutoffDate,
     );
     for (const conn of staleConnections) {
       await this.prisma.linkedInConnection.update({
