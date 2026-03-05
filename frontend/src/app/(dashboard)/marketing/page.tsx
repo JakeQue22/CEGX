@@ -212,6 +212,7 @@ export default function MarketingPage() {
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <p className="text-xs text-gray-500 mb-1">Cost Savings Potential</p>
             <p className="text-lg font-bold text-green-700">
+              {/* Estimate: 1.5x win rate as cost savings potential, capped at 35% industry benchmark */}
               {overview.winRate > 0 ? `${Math.min(overview.winRate * 1.5, 35).toFixed(0)}%` : '—'}
             </p>
             <p className="text-xs text-gray-400">vs single-source buying</p>

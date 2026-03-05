@@ -140,7 +140,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   }
 
   const totalCost = unitCost * calcQty;
-  const revenue = calcSalePrice || (product.retailPrice != null ? Number(product.retailPrice) * calcQty : 0);
+  const revenue = calcSalePrice > 0 ? calcSalePrice : (product.retailPrice != null ? Number(product.retailPrice) * calcQty : 0);
   const grossProfit = revenue - totalCost;
   const margin = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
 
@@ -213,9 +213,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             <Input label="Base Cost (£)" type="number" min={0} step={0.01} value={form.baseCostPrice} onChange={set('baseCostPrice')} hint="Supplier cost" />
             <Input label="Retail Price (£)" type="number" min={0} step={0.01} value={form.retailPrice} onChange={set('retailPrice')} placeholder="0.00" hint="Customer price" />
           </div>
-          <div className="grid grid-cols-1 gap-4">
-            <Input label="Min Order Quantity" type="number" min={1} step={1} value={form.minOrderQuantity} onChange={set('minOrderQuantity')} />
-          </div>
+          <Input label="Min Order Quantity" type="number" min={1} step={1} value={form.minOrderQuantity} onChange={set('minOrderQuantity')} />
 
           <div className="grid grid-cols-2 gap-4">
             <div>
