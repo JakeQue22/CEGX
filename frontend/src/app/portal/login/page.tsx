@@ -19,7 +19,7 @@ export default function CustomerLoginPage() {
     setLoading(true);
     try {
       const res = await axios.post(`${API_URL}/customer-portal/login`, { email, password });
-      const token = res.data?.access_token || res.data?.token;
+      const token = res.data?.accessToken || res.data?.access_token || res.data?.token;
       if (token) {
         localStorage.setItem('customer_token', token);
         router.push('/portal/products');
