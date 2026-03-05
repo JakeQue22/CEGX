@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
-const TABS = ['Company', 'Email', 'Notifications', 'Users'] as const;
+const TABS = ['Company', 'Email', 'Payments', 'Notifications', 'Users'] as const;
 
 const ROLE_OPTIONS: { value: Role; label: string }[] = [
   { value: 'ADMIN', label: 'Admin' },
@@ -43,6 +43,7 @@ export default function SettingsPage() {
   const [companyForm, setCompanyForm] = useState<Partial<CompanySettings>>({});
   const [emailForm, setEmailForm] = useState<Partial<CompanySettings>>({});
   const [notifForm, setNotifForm] = useState<Partial<CompanySettings>>({});
+  const [paymentForm, setPaymentForm] = useState<Partial<CompanySettings>>({});
 
   const emptyUserForm: CreateUserPayload = { name: '', email: '', phone: '', title: '', department: '', role: 'VIEWER', password: '', sendSetPasswordEmail: false, sendWelcomeEmail: false };
   const [userForm, setUserForm] = useState<CreateUserPayload>(emptyUserForm);
@@ -79,6 +80,7 @@ export default function SettingsPage() {
   const merged = { ...settings, ...companyForm };
   const emailMerged = { ...settings, ...emailForm };
   const notifMerged = { ...settings, ...notifForm };
+  const paymentMerged = { ...settings, ...paymentForm };
 
   const [testEmailAddr, setTestEmailAddr] = useState('');
   const [testEmailResult, setTestEmailResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -114,6 +116,11 @@ export default function SettingsPage() {
   function setE(field: keyof CompanySettings) {
     return (e: React.ChangeEvent<HTMLInputElement>) =>
       setEmailForm((f) => ({ ...f, [field]: e.target.type === 'number' ? Number(e.target.value) : e.target.value }));
+  }
+
+  function setP(field: keyof CompanySettings) {
+    return (e: React.ChangeEvent<HTMLInputElement>) =>
+      setPaymentForm((f) => ({ ...f, [field]: e.target.value }));
   }
 
   function toggleNotif(field: keyof CompanySettings) {
@@ -276,6 +283,59 @@ export default function SettingsPage() {
             </div>
           )}
         </div>
+      )}
+
+      {/* Payments Tab */}
+      {tab === 'Payments' && (
+        <form
+          onSubmit={(e) => { e.preventDefault(); save.mutate(paymentForm); }}
+          className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-4"
+        >
+          <h2 className="text-base font-semibold text-gray-900">Bank Details</h2>
+          <p className="text-sm text-gray-500">Bank account information for invoices and payments.</p>
+          <Input label="Account Name" value={paymentMerged.bankAccountName ?? ''} onChange={setP('bankAccountName')} placeholder="CEGX Ltd" />
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="Sort Code" value={paymentMerged.bankSortCode ?? ''} onChange={setP('bankSortCode')} placeholder="12-34-56" />
+            <Input label="Account Number" value={paymentMerged.bankAccountNumber ?? ''} onChange={setP('bankAccountNumber')} placeholder="12345678" />
+          </div>
+          <Input label="IBAN" value={paymentMerged.bankIban ?? ''} onChange={setP('bankIban')} placeholder="GB29 NWBK 6016 1331 9268 19" />
+
+          <h2 className="text-base font-semibold text-gray-900 pt-4">Stripe Integration</h2>
+          <p className="text-sm text-gray-500">Connect Stripe for online card payments.</p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Mode</label>
+            <div className="flex gap-3">
+              {(['test', 'live'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setPaymentForm((f) => ({ ...f, stripeMode: mode }))}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg border transition ${
+                    (paymentMerged.stripeMode ?? 'test') === mode
+                      ? mode === 'live'
+                        ? 'bg-green-50 border-green-300 text-green-700'
+                        : 'bg-blue-50 border-blue-300 text-blue-700'
+                      : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                  }`}
+                >
+                  {mode === 'test' ? '🧪 Test' : '🟢 Live'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <h3 className="text-sm font-semibold text-gray-700 pt-2">Test Keys</h3>
+          <Input label="Test Publishable Key" value={paymentMerged.stripeTestPublicKey ?? ''} onChange={setP('stripeTestPublicKey')} placeholder="pk_test_..." />
+          <Input label="Test Secret Key" type="password" value={paymentMerged.stripeTestSecretKey ?? ''} onChange={setP('stripeTestSecretKey')} placeholder="sk_test_..." />
+
+          <h3 className="text-sm font-semibold text-gray-700 pt-2">Live Keys</h3>
+          <Input label="Live Publishable Key" value={paymentMerged.stripeLivePublicKey ?? ''} onChange={setP('stripeLivePublicKey')} placeholder="pk_live_..." />
+          <Input label="Live Secret Key" type="password" value={paymentMerged.stripeLiveSecretKey ?? ''} onChange={setP('stripeLiveSecretKey')} placeholder="sk_live_..." />
+
+          <div className="pt-2">
+            <Button type="submit" loading={save.isPending}>Save Payment Settings</Button>
+          </div>
+        </form>
       )}
 
       {/* Notifications Tab */}

@@ -58,6 +58,17 @@ export interface CompanySettings {
   notifyOnDealWon: boolean;
   notifyOnDealLost: boolean;
   notifyOnFollowUpDue: boolean;
+  // Payment / Bank Details
+  bankAccountName?: string;
+  bankSortCode?: string;
+  bankAccountNumber?: string;
+  bankIban?: string;
+  // Stripe Integration
+  stripeTestPublicKey?: string;
+  stripeTestSecretKey?: string;
+  stripeLivePublicKey?: string;
+  stripeLiveSecretKey?: string;
+  stripeMode?: string;
   updatedAt: string;
 }
 

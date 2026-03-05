@@ -107,13 +107,17 @@ export class CcsScraperService {
         // Look for status and category in surrounding elements
         const $parent = $el.closest('li, .agreement-item, .govuk-summary-list__row, div');
         const statusText = $parent.find('.govuk-tag, .status, [class*="status"]').first().text().trim();
-        const categoryText = $parent.find('.category, [class*="category"], .govuk-body-s').first().text().trim();
+        const categoryText = $parent.find('.category, [class*="category"]').first().text().trim();
+
+        // Filter out metadata strings that were incorrectly picked up as categories
+        const isMetadata = (text: string) =>
+          /Agreement ID:|Start Date:|End Date:|Regulation:/i.test(text);
 
         frameworks.push({
           reference: reference.toUpperCase(),
           title,
           description: '',
-          category: categoryText || title,
+          category: (categoryText && !isMetadata(categoryText)) ? categoryText : title,
           status: this.normaliseStatus(statusText),
           websiteUrl: href.startsWith('http') ? href : `${this.baseUrl}${href}`,
         });

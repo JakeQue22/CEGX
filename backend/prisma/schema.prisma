@@ -68,6 +68,20 @@ model CompanySettings {
   notifyOnDealWon      Boolean  @default(true)
   notifyOnDealLost     Boolean  @default(true)
   notifyOnFollowUpDue  Boolean  @default(true)
+
+  // Payment / Bank Details
+  bankAccountName      String?
+  bankSortCode         String?
+  bankAccountNumber    String?
+  bankIban             String?
+
+  // Stripe Integration
+  stripeTestPublicKey  String?
+  stripeTestSecretKey  String?
+  stripeLivePublicKey  String?
+  stripeLiveSecretKey  String?
+  stripeMode           String   @default("test") // "test" or "live"
+
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 

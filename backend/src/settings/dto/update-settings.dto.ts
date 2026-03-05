@@ -128,4 +128,51 @@ export class UpdateSettingsDto {
   @IsOptional()
   @IsBoolean()
   notifyOnFollowUpDue?: boolean;
+
+  // Payment / Bank Details
+  @ApiPropertyOptional({ description: 'Bank account holder name' })
+  @IsOptional()
+  @IsString()
+  bankAccountName?: string;
+
+  @ApiPropertyOptional({ description: 'Bank sort code (e.g. 12-34-56)' })
+  @IsOptional()
+  @IsString()
+  bankSortCode?: string;
+
+  @ApiPropertyOptional({ description: 'Bank account number' })
+  @IsOptional()
+  @IsString()
+  bankAccountNumber?: string;
+
+  @ApiPropertyOptional({ description: 'IBAN for international transfers' })
+  @IsOptional()
+  @IsString()
+  bankIban?: string;
+
+  // Stripe Integration
+  @ApiPropertyOptional({ description: 'Stripe test publishable key' })
+  @IsOptional()
+  @IsString()
+  stripeTestPublicKey?: string;
+
+  @ApiPropertyOptional({ description: 'Stripe test secret key' })
+  @IsOptional()
+  @IsString()
+  stripeTestSecretKey?: string;
+
+  @ApiPropertyOptional({ description: 'Stripe live publishable key' })
+  @IsOptional()
+  @IsString()
+  stripeLivePublicKey?: string;
+
+  @ApiPropertyOptional({ description: 'Stripe live secret key' })
+  @IsOptional()
+  @IsString()
+  stripeLiveSecretKey?: string;
+
+  @ApiPropertyOptional({ description: 'Stripe mode: "test" or "live"' })
+  @IsOptional()
+  @IsString()
+  stripeMode?: string;
 }
