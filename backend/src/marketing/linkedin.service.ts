@@ -248,6 +248,8 @@ export class LinkedInService {
   }
 
   // --- CSV Import ---
+  private readonly MAX_RETURNED_ERRORS = 10;
+
   async importConnections(accountId: string, dto: ImportLinkedInConnectionsDto) {
     const account = await this.prisma.linkedInAccount.findUnique({
       where: { id: accountId },
@@ -267,13 +269,13 @@ export class LinkedInService {
         const name = [conn.firstName, conn.lastName].filter(Boolean).join(' ').trim() || 'Unknown';
         const profileUrl = conn.profileUrl?.trim();
 
-        if (!profileUrl && !conn.email) {
+        if (!profileUrl && !conn.email?.trim()) {
           skipped++;
           continue;
         }
 
         // Use profileUrl as unique key, or build a placeholder from email
-        const uniqueUrl = profileUrl || `linkedin://connection/${conn.email}`;
+        const uniqueUrl = profileUrl || `linkedin://connection/${encodeURIComponent(conn.email!.trim())}`;
 
         // Check for existing connection (by accountId + profileUrl)
         const existing = await this.prisma.linkedInConnection.findFirst({
@@ -322,7 +324,7 @@ export class LinkedInService {
       accountId,
       email: account.email,
       stats: { created, skipped, errors: errors.length },
-      errors: errors.slice(0, 10),
+      errors: errors.slice(0, this.MAX_RETURNED_ERRORS),
     };
   }
 }
