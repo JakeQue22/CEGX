@@ -61,10 +61,12 @@ export default function CcsOverviewPage() {
       </div>
 
       {/* Sync Result */}
-      {syncResult && (
-        <div className={`rounded-xl border p-4 ${syncResult.errors.length > 0 && syncResult.created === 0 && syncResult.updated === 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+      {syncResult && (() => {
+        const isFullFailure = syncResult.errors.length > 0 && syncResult.created === 0 && syncResult.updated === 0;
+        return (
+        <div className={`rounded-xl border p-4 ${isFullFailure ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
           <div className="flex items-start gap-3">
-            <span className="text-lg">{syncResult.errors.length > 0 && syncResult.created === 0 && syncResult.updated === 0 ? '❌' : '✅'}</span>
+            <span className="text-lg">{isFullFailure ? '❌' : '✅'}</span>
             <div>
               <p className="text-sm font-medium text-gray-900">
                 CCS Sync Complete: {syncResult.created} new frameworks, {syncResult.updated} updated
@@ -82,7 +84,8 @@ export default function CcsOverviewPage() {
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

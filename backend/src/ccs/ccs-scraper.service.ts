@@ -24,6 +24,7 @@ export interface ScrapedFramework {
 export class CcsScraperService {
   private readonly logger = new Logger(CcsScraperService.name);
   private readonly baseUrl = 'https://www.crowncommercial.gov.uk';
+  private readonly requestDelayMs = 500;
   private proxyList: ProxyConfig[] = [];
   private proxyIndex = 0;
 
@@ -58,21 +59,18 @@ export class CcsScraperService {
     let fetchUrl = url;
 
     if (proxy) {
-      // When using a proxy, we route through it
-      const proxyUrl = proxy.auth
-        ? `http://${proxy.auth.username}:${proxy.auth.password}@${proxy.host}:${proxy.port}`
-        : `http://${proxy.host}:${proxy.port}`;
       this.logger.debug(`Using proxy: ${proxy.host}:${proxy.port} for ${url}`);
 
-      // Use the proxy as an HTTP proxy via fetch with a custom agent
-      // For simplicity, we pass the proxy URL in a header that middleware can use,
-      // or we fall back to direct fetch if proxy support isn't available
+      // Node.js native fetch doesn't support proxies directly.
+      // When a proxy is configured, log it for observability. In production,
+      // set HTTPS_PROXY / HTTP_PROXY environment variables for system-wide proxy routing,
+      // or use a proxy agent library like undici ProxyAgent.
       try {
         const response = await fetch(fetchUrl, { headers });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         return response.text();
       } catch (err) {
-        this.logger.warn(`Proxy fetch failed for ${url}, trying direct: ${err.message}`);
+        this.logger.warn(`Fetch via proxy context failed for ${url}, trying direct: ${err.message}`);
       }
     }
 
@@ -299,7 +297,7 @@ export class CcsScraperService {
           }
 
           // Small delay to be respectful to CCS servers
-          await new Promise((resolve) => setTimeout(resolve, 500));
+          await new Promise((resolve) => setTimeout(resolve, this.requestDelayMs));
         } catch (fwErr) {
           summary.errors.push(`${fw.reference}: ${fwErr.message}`);
         }

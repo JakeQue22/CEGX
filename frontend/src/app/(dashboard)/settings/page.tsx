@@ -265,7 +265,7 @@ export default function SettingsPage() {
             <Button
               type="button"
               loading={testEmail.isPending}
-              onClick={() => { if (testEmailAddr) testEmail.mutate(testEmailAddr); }}
+              onClick={() => { if (testEmailAddr && testEmailAddr.includes('@')) testEmail.mutate(testEmailAddr); }}
             >
               Send Test Email
             </Button>

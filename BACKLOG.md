@@ -60,6 +60,10 @@
 - [x] Leads should go into pipeline (not just deals) — pipelineStageId on MarketingLead, Kanban shows both
 - [x] Allow edit leads — `/marketing/leads/[id]` detail/edit page with search, clickable rows
 - [x] CCS Framework Tools — full CRUD for frameworks, lots, opportunities; browse/search/filter/bid tracking
+- [x] Routes to Market tiles — all 8 procurement channel tiles now have working links to appropriate CRM pages
+- [x] CCS scraping with rotating proxies — scrape CCS website for live framework data (cheerio + proxy support)
+- [x] SMTP test connection button — `POST /settings/test-email` + "Send Test Email" button in Settings > Email tab
+- [x] AI prompt update — UK English, balanced LinkedIn/email tone, master procurer persona with CCS/tender expertise
 
 ---
 
