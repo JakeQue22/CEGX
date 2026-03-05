@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axiosInstance from '@/lib/axios';
-import { MarketingLead } from '@/types';
+import { MarketingLead, Product, ProductCategory } from '@/types';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
@@ -22,7 +22,7 @@ export default function MarketingLeadsPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [search, setSearch] = useState('');
   const [newLead, setNewLead] = useState({
-    companyName: '', contactName: '', contactEmail: '', contactPhone: '', website: '', industry: '', source: '', notes: '',
+    companyName: '', contactName: '', contactEmail: '', contactPhone: '', website: '', industry: '', source: '', notes: '', productId: '', categoryId: '',
   });
 
   const { data, isLoading } = useQuery<MarketingLead[]>({
@@ -31,19 +31,39 @@ export default function MarketingLeadsPage() {
       Array.isArray(r.data) ? r.data : []),
   });
 
+  const { data: products = [] } = useQuery<Product[]>({
+    queryKey: ['products-list'],
+    queryFn: () => axiosInstance.get('/products').then((r) =>
+      Array.isArray(r.data) ? r.data : r.data?.data ?? []),
+  });
+
+  const { data: categories = [] } = useQuery<ProductCategory[]>({
+    queryKey: ['categories-list'],
+    queryFn: () => axiosInstance.get('/categories').then((r) =>
+      Array.isArray(r.data) ? r.data : []),
+  });
+
   const createLead = useMutation({
-    mutationFn: (data: any) => axiosInstance.post('/marketing/outreach/leads', data),
+    mutationFn: (data: any) => {
+      const payload = { ...data };
+      if (!payload.productId) delete payload.productId;
+      if (!payload.categoryId) delete payload.categoryId;
+      if (!payload.companyName) delete payload.companyName;
+      if (!payload.contactEmail) delete payload.contactEmail;
+      return axiosInstance.post('/marketing/outreach/leads', payload);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['marketing-leads'] });
+      queryClient.invalidateQueries({ queryKey: ['leads-pipeline'] });
       setShowAddForm(false);
-      setNewLead({ companyName: '', contactName: '', contactEmail: '', contactPhone: '', website: '', industry: '', source: '', notes: '' });
+      setNewLead({ companyName: '', contactName: '', contactEmail: '', contactPhone: '', website: '', industry: '', source: '', notes: '', productId: '', categoryId: '' });
     },
   });
 
   const allLeads = data ?? [];
   const leads = allLeads.filter((l) =>
     !search ||
-    l.companyName.toLowerCase().includes(search.toLowerCase()) ||
+    (l.companyName ?? '').toLowerCase().includes(search.toLowerCase()) ||
     (l.contactName ?? '').toLowerCase().includes(search.toLowerCase()) ||
     (l.contactEmail ?? '').toLowerCase().includes(search.toLowerCase()) ||
     (l.industry ?? '').toLowerCase().includes(search.toLowerCase())
@@ -84,16 +104,36 @@ export default function MarketingLeadsPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
           <h2 className="font-semibold text-gray-900">Add New Lead</h2>
           <div className="grid grid-cols-2 gap-4">
-            <input type="text" placeholder="Company Name *" required value={newLead.companyName} onChange={(e) => setNewLead({ ...newLead, companyName: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+            <input type="text" placeholder="Company Name" value={newLead.companyName} onChange={(e) => setNewLead({ ...newLead, companyName: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
             <input type="text" placeholder="Contact Name" value={newLead.contactName} onChange={(e) => setNewLead({ ...newLead, contactName: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
             <input type="email" placeholder="Email" value={newLead.contactEmail} onChange={(e) => setNewLead({ ...newLead, contactEmail: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
             <input type="text" placeholder="Phone" value={newLead.contactPhone} onChange={(e) => setNewLead({ ...newLead, contactPhone: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
             <input type="text" placeholder="Website" value={newLead.website} onChange={(e) => setNewLead({ ...newLead, website: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
             <input type="text" placeholder="Industry" value={newLead.industry} onChange={(e) => setNewLead({ ...newLead, industry: e.target.value })} className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+            <select
+              value={newLead.productId}
+              onChange={(e) => setNewLead({ ...newLead, productId: e.target.value })}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            >
+              <option value="">Select Product</option>
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+            <select
+              value={newLead.categoryId}
+              onChange={(e) => setNewLead({ ...newLead, categoryId: e.target.value })}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            >
+              <option value="">Select Category</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
           </div>
           <textarea placeholder="Notes" value={newLead.notes} onChange={(e) => setNewLead({ ...newLead, notes: e.target.value })} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
           <div className="flex gap-2">
-            <button onClick={() => createLead.mutate(newLead)} disabled={!newLead.companyName || createLead.isPending} className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition disabled:opacity-50">
+            <button onClick={() => createLead.mutate(newLead)} disabled={createLead.isPending} className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition disabled:opacity-50">
               {createLead.isPending ? 'Saving...' : 'Save Lead'}
             </button>
             <button onClick={() => setShowAddForm(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Cancel</button>
@@ -118,7 +158,7 @@ export default function MarketingLeadsPage() {
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="font-medium text-gray-900">{lead.companyName}</p>
+                  <p className="font-medium text-gray-900">{lead.companyName || lead.contactName || 'Unnamed Lead'}</p>
                   <Badge label={lead.status} variant={statusVariant[lead.status] ?? 'neutral'} />
                   {lead.pipelineStage && (
                     <span className="text-xs bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full">
@@ -129,7 +169,11 @@ export default function MarketingLeadsPage() {
                 <p className="text-sm text-gray-500 mt-0.5">
                   {lead.contactName || 'No contact'} • {lead.contactEmail || 'No email'} {lead.industry ? `• ${lead.industry}` : ''}
                 </p>
-                {lead.campaign && <p className="text-xs text-blue-500 mt-0.5">Campaign: {lead.campaign.name}</p>}
+                <div className="flex items-center gap-2 mt-0.5">
+                  {lead.campaign && <span className="text-xs text-blue-500">Campaign: {lead.campaign.name}</span>}
+                  {lead.product && <span className="text-xs text-green-600">Product: {lead.product.name}</span>}
+                  {lead.category && <span className="text-xs text-orange-600">Category: {lead.category.name}</span>}
+                </div>
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-400">
                 <span>{lead._count?.outreachEmails ?? 0} emails</span>

@@ -384,7 +384,11 @@ export interface MarketingLead {
   campaign?: { id: string; name: string };
   pipelineStageId?: string;
   pipelineStage?: { id: string; name: string; color?: string };
-  companyName: string;
+  productId?: string;
+  product?: { id: string; name: string; sku: string };
+  categoryId?: string;
+  category?: { id: string; name: string };
+  companyName?: string;
   contactName?: string;
   contactEmail?: string;
   contactPhone?: string;

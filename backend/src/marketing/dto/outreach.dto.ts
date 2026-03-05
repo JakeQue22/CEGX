@@ -2,9 +2,10 @@ import { IsString, IsOptional, IsEmail, IsArray, IsBoolean } from 'class-validat
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateLeadDto {
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
-  companyName: string;
+  companyName?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -50,6 +51,16 @@ export class CreateLeadDto {
   @IsOptional()
   @IsString()
   pipelineStageId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  productId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  categoryId?: string;
 }
 
 export class UpdateLeadDto {

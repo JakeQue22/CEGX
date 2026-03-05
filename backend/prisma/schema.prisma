@@ -104,6 +104,7 @@ model ProductCategory {
   updatedAt   DateTime @updatedAt
 
   products Product[]
+  leads    MarketingLead[]
 
   @@map("product_categories")
 }
@@ -129,6 +130,7 @@ model Product {
 
   bulkPricings BulkPricing[]
   deals        Deal[]
+  leads        MarketingLead[]
 
   @@map("products")
 }
@@ -451,7 +453,11 @@ model MarketingLead {
   campaign        MarketingCampaign? @relation(fields: [campaignId], references: [id])
   pipelineStageId String?
   pipelineStage   PipelineStage?     @relation(fields: [pipelineStageId], references: [id])
-  companyName     String
+  productId       String?
+  product         Product?           @relation(fields: [productId], references: [id])
+  categoryId      String?
+  category        ProductCategory?   @relation(fields: [categoryId], references: [id])
+  companyName     String?
   contactName     String?
   contactEmail    String?
   contactPhone    String?
