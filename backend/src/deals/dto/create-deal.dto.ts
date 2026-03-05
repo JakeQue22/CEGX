@@ -32,6 +32,11 @@ export class CreateDealDto {
   @IsString()
   stageId: string;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  courierId?: string;
+
   @ApiPropertyOptional({ default: 1, minimum: 1 })
   @IsOptional()
   @IsInt()
@@ -42,6 +47,12 @@ export class CreateDealDto {
   @IsNumber()
   @Min(0)
   salePrice: number;
+
+  @ApiPropertyOptional({ default: 0, minimum: 0 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  shippingCost?: number;
 
   @ApiPropertyOptional()
   @IsOptional()

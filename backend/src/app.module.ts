@@ -8,6 +8,7 @@ import { UsersModule } from './users/users.module';
 import { SettingsModule } from './settings/settings.module';
 import { SuppliersModule } from './suppliers/suppliers.module';
 import { CustomersModule } from './customers/customers.module';
+import { CouriersModule } from './couriers/couriers.module';
 import { ProductsModule } from './products/products.module';
 import { CategoriesModule } from './categories/categories.module';
 import { PipelineModule } from './pipeline/pipeline.module';
@@ -49,6 +50,7 @@ import { CustomerOrdersModule } from './customer-orders/customer-orders.module';
     SettingsModule,
     SuppliersModule,
     CustomersModule,
+    CouriersModule,
     ProductsModule,
     CategoriesModule,
     PipelineModule,

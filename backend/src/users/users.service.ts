@@ -5,24 +5,53 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
+import * as crypto from 'crypto';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { CreateUserDto } from './dto/create-user.dto';
 
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private readonly userSelect = {
+    id: true,
+    email: true,
+    name: true,
+    phone: true,
+    title: true,
+    department: true,
+    role: true,
+    isActive: true,
+    createdAt: true,
+    updatedAt: true,
+  };
+
+  async create(dto: CreateUserDto) {
+    const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    if (existing) throw new ConflictException('Email already in use');
+
+    const password = dto.password || crypto.randomBytes(16).toString('hex');
+    const hashed = await bcrypt.hash(password, 12);
+
+    return this.prisma.user.create({
+      data: {
+        name: dto.name,
+        email: dto.email,
+        password: hashed,
+        phone: dto.phone,
+        title: dto.title,
+        department: dto.department,
+        role: dto.role ?? 'VIEWER',
+        isActive: dto.isActive ?? true,
+      },
+      select: this.userSelect,
+    });
+  }
+
   async findAll() {
     return this.prisma.user.findMany({
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: this.userSelect,
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -30,15 +59,7 @@ export class UsersService {
   async findOne(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: this.userSelect,
     });
     if (!user) throw new NotFoundException(`User ${id} not found`);
     return user;
@@ -72,14 +93,7 @@ export class UsersService {
     return this.prisma.user.update({
       where: { id },
       data,
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        isActive: true,
-        updatedAt: true,
-      },
+      select: this.userSelect,
     });
   }
 

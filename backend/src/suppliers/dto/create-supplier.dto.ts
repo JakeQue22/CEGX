@@ -8,6 +8,11 @@ export class CreateSupplierDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @IsString()
+  contactName?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsEmail()
   contactEmail?: string;
 
@@ -37,4 +42,9 @@ export class CreateSupplierDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  salesPersonId?: string;
 }

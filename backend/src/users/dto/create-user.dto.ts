@@ -2,16 +2,14 @@ import { IsString, IsEmail, IsEnum, IsBoolean, IsOptional, MinLength } from 'cla
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Role } from '../../common/enums/role.enum';
 
-export class UpdateUserDto {
-  @ApiPropertyOptional()
-  @IsOptional()
+export class CreateUserDto {
+  @ApiProperty({ example: 'John Smith' })
   @IsString()
-  name?: string;
+  name: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
+  @ApiProperty({ example: 'john@cegx.co.uk' })
   @IsEmail()
-  email?: string;
+  email: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -28,18 +26,19 @@ export class UpdateUserDto {
   @IsString()
   department?: string;
 
-  @ApiPropertyOptional({ enum: Role })
+  @ApiPropertyOptional({ enum: Role, default: Role.VIEWER })
   @IsOptional()
   @IsEnum(Role)
   role?: Role;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ minLength: 8, description: 'Password for the user. If not provided, user will need to reset password.' })
+  @IsOptional()
+  @IsString()
+  @MinLength(8)
+  password?: string;
+
+  @ApiPropertyOptional({ default: true })
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
-
-  @ApiPropertyOptional({ minLength: 8 })
-  @IsOptional()
-  @IsString()
-  password?: string;
 }
