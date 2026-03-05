@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import axiosInstance from '@/lib/axios';
-import { MarketingLead, PipelineStage, LeadStatus } from '@/types';
+import { MarketingLead, PipelineStage, LeadStatus, Product, ProductCategory } from '@/types';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -39,6 +39,8 @@ interface EditForm {
   notes: string;
   status: string;
   pipelineStageId: string;
+  productId: string;
+  categoryId: string;
 }
 
 function buildFormFromLead(lead: MarketingLead): EditForm {
@@ -53,6 +55,8 @@ function buildFormFromLead(lead: MarketingLead): EditForm {
     notes: lead.notes ?? '',
     status: lead.status,
     pipelineStageId: lead.pipelineStageId ?? '',
+    productId: lead.productId ?? '',
+    categoryId: lead.categoryId ?? '',
   };
 }
 
@@ -71,6 +75,20 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
   const { data: stages = [] } = useQuery<PipelineStage[]>({
     queryKey: ['pipeline-stages'],
     queryFn: () => axiosInstance.get('/pipeline').then((r) => r.data),
+    enabled: editing,
+  });
+
+  const { data: products = [] } = useQuery<Product[]>({
+    queryKey: ['products-list'],
+    queryFn: () => axiosInstance.get('/products').then((r) =>
+      Array.isArray(r.data) ? r.data : r.data?.data ?? []),
+    enabled: editing,
+  });
+
+  const { data: categories = [] } = useQuery<ProductCategory[]>({
+    queryKey: ['categories-list'],
+    queryFn: () => axiosInstance.get('/categories').then((r) =>
+      Array.isArray(r.data) ? r.data : []),
     enabled: editing,
   });
 
@@ -121,6 +139,8 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
       notes: form.notes || undefined,
       status: form.status,
       pipelineStageId: form.pipelineStageId || undefined,
+      productId: form.productId || null,
+      categoryId: form.categoryId || null,
     };
     updateMutation.mutate(payload);
   };
@@ -175,6 +195,8 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
               { label: 'Source', value: lead.source ?? '—' },
               { label: 'Status', value: lead.status },
               { label: 'Pipeline Stage', value: lead.pipelineStage?.name ?? 'Not in pipeline' },
+              { label: 'Product', value: lead.product?.name ?? '—' },
+              { label: 'Category', value: lead.category?.name ?? '—' },
               { label: 'Campaign', value: lead.campaign?.name ?? '—' },
               { label: 'Emails Sent', value: String(lead._count?.outreachEmails ?? 0) },
               { label: 'Created', value: new Date(lead.createdAt).toLocaleDateString('en-GB') },
@@ -219,6 +241,24 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
                 ...stages.map((s) => ({ value: s.id, label: s.name })),
               ]}
               onChange={(e) => updateField('pipelineStageId', e.target.value)}
+            />
+            <Select
+              label="Product"
+              value={form.productId}
+              options={[
+                { value: '', label: 'No product' },
+                ...products.map((p) => ({ value: p.id, label: p.name })),
+              ]}
+              onChange={(e) => updateField('productId', e.target.value)}
+            />
+            <Select
+              label="Category"
+              value={form.categoryId}
+              options={[
+                { value: '', label: 'No category' },
+                ...categories.map((c) => ({ value: c.id, label: c.name })),
+              ]}
+              onChange={(e) => updateField('categoryId', e.target.value)}
             />
           </div>
 
