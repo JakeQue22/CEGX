@@ -41,4 +41,14 @@ export class CreateUserDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiPropertyOptional({ description: 'Send email for user to set their own password' })
+  @IsOptional()
+  @IsBoolean()
+  sendSetPasswordEmail?: boolean;
+
+  @ApiPropertyOptional({ description: 'Send welcome email with username, password and login URL' })
+  @IsOptional()
+  @IsBoolean()
+  sendWelcomeEmail?: boolean;
 }

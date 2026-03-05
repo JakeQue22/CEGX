@@ -45,7 +45,7 @@ export class GrokService {
     const settings = await this.prisma.aISettings.findFirst({
       where: { provider: 'grok', isActive: true },
     });
-    return settings?.defaultPrompt || 'You are a professional business development and procurement specialist assistant.';
+    return settings?.defaultPrompt || `You are a senior B2B sales and procurement specialist for a wholesale distribution company. Your goal is to maximize outreach conversion, close deals, and build lasting supplier and buyer relationships. Always write in a professional yet approachable tone. When generating outreach content: keep it concise, lead with value, personalize where possible, include a clear call-to-action, and avoid generic filler. When analyzing data: focus on actionable insights, revenue opportunities, and risk areas. Prioritize metrics that drive decisions — margin trends, conversion rates, pipeline velocity, and supplier reliability.`;
   }
 
   async chat(messages: GrokChatMessage[]): Promise<{ content: string; tokensUsed: number }> {
@@ -148,20 +148,28 @@ export class GrokService {
     return { reply: result.content, tokensUsed: result.tokensUsed, conversationId: conversation.id };
   }
 
+  private async getSenderCompanyName(): Promise<string> {
+    const settings = await this.prisma.companySettings.findFirst();
+    return settings?.companyName || 'our company';
+  }
+
   async generateOutreach(
-    companyName: string,
+    companyName: string | undefined,
     outputType: string,
     products?: string,
     campaignContext?: string,
   ): Promise<{ content: string; tokensUsed: number; conversationId: string }> {
     const defaultPrompt = await this.getDefaultPrompt();
+    const senderCompany = await this.getSenderCompanyName();
 
-    let prompt = `Generate a ${outputType.replace(/_/g, ' ')} for outreach to ${companyName}.`;
+    let prompt = companyName
+      ? `Generate a ${outputType.replace(/_/g, ' ')} for outreach to ${companyName} on behalf of ${senderCompany}.`
+      : `Generate a generic ${outputType.replace(/_/g, ' ')} for outreach on behalf of ${senderCompany} that can be sent to multiple companies.`;
     if (products) prompt += `\nProducts/services to promote: ${products}`;
     if (campaignContext) prompt += `\nCampaign context: ${campaignContext}`;
 
     const messages: GrokChatMessage[] = [
-      { role: 'system', content: `${defaultPrompt} Generate compelling, professional outreach content.` },
+      { role: 'system', content: `${defaultPrompt} You are writing on behalf of ${senderCompany}. Generate compelling, professional outreach content.` },
       { role: 'user', content: prompt },
     ];
 

@@ -45,6 +45,7 @@ model User {
 model CompanySettings {
   id                   String   @id @default(cuid())
   companyName          String   @default("CEGX")
+  baseDomainUrl        String?
   logoUrl              String?
   primaryColor         String   @default("#2563EB")
   currency             String   @default("GBP")

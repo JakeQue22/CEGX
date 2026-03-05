@@ -28,6 +28,8 @@ interface CreateUserPayload {
   department?: string;
   role: Role;
   password?: string;
+  sendSetPasswordEmail?: boolean;
+  sendWelcomeEmail?: boolean;
 }
 type Tab = (typeof TABS)[number];
 
@@ -42,7 +44,7 @@ export default function SettingsPage() {
   const [emailForm, setEmailForm] = useState<Partial<CompanySettings>>({});
   const [notifForm, setNotifForm] = useState<Partial<CompanySettings>>({});
 
-  const emptyUserForm: CreateUserPayload = { name: '', email: '', phone: '', title: '', department: '', role: 'VIEWER', password: '' };
+  const emptyUserForm: CreateUserPayload = { name: '', email: '', phone: '', title: '', department: '', role: 'VIEWER', password: '', sendSetPasswordEmail: false, sendWelcomeEmail: false };
   const [userForm, setUserForm] = useState<CreateUserPayload>(emptyUserForm);
 
   const { data: users = [] } = useQuery<User[]>({
@@ -140,6 +142,7 @@ export default function SettingsPage() {
         >
           <h2 className="text-base font-semibold text-gray-900">Company Details</h2>
           <Input label="Company Name" value={merged.companyName ?? ''} onChange={setC('companyName')} />
+          <Input label="Base Domain URL" type="url" value={merged.baseDomainUrl ?? ''} onChange={setC('baseDomainUrl')} placeholder="https://cegx.quantumonline.co.uk" />
           <Input label="Logo URL" type="url" value={merged.logoUrl ?? ''} onChange={setC('logoUrl')} placeholder="https://..." />
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Primary Brand Color</label>
@@ -332,6 +335,27 @@ export default function SettingsPage() {
                 placeholder="••••••••"
               />
               <p className="text-xs text-gray-400 mt-1">Leave blank to generate a random password</p>
+            </div>
+            <div className="space-y-3 pt-2 border-t border-gray-100">
+              <p className="text-sm font-medium text-gray-700">Email Options</p>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={userForm.sendSetPasswordEmail ?? false}
+                  onChange={(e) => setUserForm((f) => ({ ...f, sendSetPasswordEmail: e.target.checked }))}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">Send email for user to set their own password</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={userForm.sendWelcomeEmail ?? false}
+                  onChange={(e) => setUserForm((f) => ({ ...f, sendWelcomeEmail: e.target.checked }))}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">Send welcome email with username, password &amp; login URL</span>
+              </label>
             </div>
             <div className="pt-2">
               <Button type="submit" loading={createUser.isPending}>Create User</Button>

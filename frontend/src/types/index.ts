@@ -36,6 +36,7 @@ export interface User {
 export interface CompanySettings {
   id: string;
   companyName: string;
+  baseDomainUrl?: string;
   logoUrl?: string;
   primaryColor: string;
   currency: string;

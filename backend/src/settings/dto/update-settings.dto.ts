@@ -15,6 +15,11 @@ export class UpdateSettingsDto {
   @IsString()
   companyName?: string;
 
+  @ApiPropertyOptional({ description: 'Base domain URL for the CRM, e.g. https://cegx.quantumonline.co.uk' })
+  @IsOptional()
+  @IsString()
+  baseDomainUrl?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()

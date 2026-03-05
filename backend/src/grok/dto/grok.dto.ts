@@ -41,10 +41,11 @@ export class GenerateReplyDto {
 }
 
 export class GenerateOutreachDto {
-  @ApiProperty({ description: 'Company name to generate outreach for' })
+  @ApiPropertyOptional({ description: 'Company name to generate outreach for (optional for generic messages)' })
+  @IsOptional()
   @IsString()
   @MaxLength(500)
-  companyName: string;
+  companyName?: string;
 
   @ApiPropertyOptional({ description: 'Products to promote' })
   @IsOptional()
