@@ -131,8 +131,36 @@ export class CcsScraperService {
       const $ = cheerio.load(html);
       let foundOnPage = 0;
 
-      // CCS website uses agreement cards/list items
-      $('a[href*="/agreements/"]').each((_i, el) => {
+      this.logger.log(`Page ${page}: HTML length=${html.length}, title="${$('title').text().trim()}"`);
+
+      // CCS website uses agreement cards/list items — try multiple selectors
+      // to handle potential changes to the site structure
+      const selectors = [
+        'a[href*="/agreements/RM"]',
+        'a[href*="/agreements/"]',
+        '[href*="/agreements/RM"]',
+      ];
+
+      let matchedSelector = '';
+      for (const selector of selectors) {
+        const count = $(selector).length;
+        if (count > 0) {
+          matchedSelector = selector;
+          this.logger.log(`Page ${page}: selector "${selector}" matched ${count} element(s)`);
+          break;
+        }
+      }
+
+      if (!matchedSelector) {
+        // Log diagnostic info when no selectors match (possible site structure change)
+        const allLinks = $('a').length;
+        const bodyText = $('body').text().substring(0, 500).replace(/\s+/g, ' ').trim();
+        this.logger.warn(
+          `Page ${page}: no agreement links found with any selector. Total <a> tags: ${allLinks}. Body preview: "${bodyText.substring(0, 200)}"`,
+        );
+      }
+
+      $(matchedSelector || 'a[href*="/agreements/RM"]').each((_i, el) => {
         const $el = $(el);
         const href = $el.attr('href') || '';
         const title = $el.text().trim();
@@ -149,7 +177,7 @@ export class CcsScraperService {
         foundOnPage++;
 
         // Look for status and category in surrounding elements
-        const $parent = $el.closest('li, .agreement-item, .govuk-summary-list__row, div');
+        const $parent = $el.closest('li, .agreement-item, .govuk-summary-list__row, div, article, section');
         const statusText = $parent.find('.govuk-tag, .status, [class*="status"]').first().text().trim();
         const categoryText = $parent.find('.category, [class*="category"]').first().text().trim();
 
@@ -365,7 +393,7 @@ export class CcsScraperService {
       const scraped = await this.scrapeFrameworksList();
 
       if (scraped.length === 0) {
-        summary.errors.push('No frameworks found on CCS website — the page structure may have changed or the site may be temporarily unavailable');
+        summary.errors.push('No frameworks found on CCS website — the page structure may have changed, the site may be JavaScript-rendered (requires browser), or it may be temporarily unavailable. Check server logs for detailed diagnostics.');
       }
 
       for (const fw of scraped) {

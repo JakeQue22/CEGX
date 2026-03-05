@@ -1,11 +1,46 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import axiosInstance from '@/lib/axios';
 import { LinkedInAccount } from '@/types';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+
+function parseCSV(text: string): Record<string, string>[] {
+  const lines = text.split(/\r?\n/).filter((line) => line.trim());
+  if (lines.length < 2) return [];
+
+  // Parse header — handle quoted fields
+  const parseRow = (row: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < row.length; i++) {
+      const ch = row[i];
+      if (ch === '"') {
+        inQuotes = !inQuotes;
+      } else if (ch === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+    result.push(current.trim());
+    return result;
+  };
+
+  const headers = parseRow(lines[0]);
+  return lines.slice(1).map((line) => {
+    const values = parseRow(line);
+    const row: Record<string, string> = {};
+    headers.forEach((h, i) => {
+      row[h] = values[i] || '';
+    });
+    return row;
+  }).filter((row) => Object.values(row).some((v) => v.trim()));
+}
 
 export default function LinkedInAccountsPage() {
   const queryClient = useQueryClient();
@@ -54,10 +89,95 @@ export default function LinkedInAccountsPage() {
     },
   });
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importAccountId, setImportAccountId] = useState<string | null>(null);
+
+  const importConnections = useMutation({
+    mutationFn: ({ accountId, connections }: { accountId: string; connections: any[] }) =>
+      axiosInstance.post(`/marketing/linkedin/accounts/${accountId}/import-connections`, { connections }).then((r) => r.data),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['linkedin-accounts'] });
+      const stats = data?.stats;
+      setSyncMessage(
+        `✅ Import complete for ${data?.email ?? 'account'}: ${stats?.created ?? 0} new connections imported, ${stats?.skipped ?? 0} already existed.` +
+        (stats?.errors > 0 ? ` ${stats.errors} errors.` : ''),
+      );
+      setTimeout(() => setSyncMessage(null), 12000);
+    },
+    onError: (err: any) => {
+      const detail = err?.response?.data?.message || err?.message || '';
+      setSyncMessage(`❌ Import failed${detail ? `: ${detail}` : ''}`);
+      setTimeout(() => setSyncMessage(null), 8000);
+    },
+  });
+
+  const handleCSVImport = (accountId: string) => {
+    setImportAccountId(accountId);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !importAccountId) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (!text) return;
+
+      const rows = parseCSV(text);
+      if (rows.length === 0) {
+        setSyncMessage('❌ No data found in CSV file');
+        setTimeout(() => setSyncMessage(null), 5000);
+        return;
+      }
+
+      // Map LinkedIn export columns to our format
+      // LinkedIn exports: "First Name", "Last Name", "URL", "Email Address", "Company", "Position", "Connected On"
+      const headers = Object.keys(rows[0]);
+      const findCol = (keywords: string[]) =>
+        headers.find((h) => keywords.some((k) => h.toLowerCase().includes(k)));
+
+      const firstNameCol = findCol(['first name', 'firstname']);
+      const lastNameCol = findCol(['last name', 'lastname']);
+      const urlCol = findCol(['url', 'profile']);
+      const emailCol = findCol(['email']);
+      const companyCol = findCol(['company', 'organization', 'organisation']);
+      const positionCol = findCol(['position', 'title', 'headline']);
+      const connectedOnCol = findCol(['connected on', 'connected_on', 'date']);
+
+      const connections = rows.map((row) => ({
+        firstName: firstNameCol ? row[firstNameCol] : '',
+        lastName: lastNameCol ? row[lastNameCol] : '',
+        profileUrl: urlCol ? row[urlCol] : '',
+        email: emailCol ? row[emailCol] : '',
+        company: companyCol ? row[companyCol] : '',
+        position: positionCol ? row[positionCol] : '',
+        connectedOn: connectedOnCol ? row[connectedOnCol] : '',
+      }));
+
+      setSyncMessage(`📤 Importing ${connections.length} connections...`);
+      importConnections.mutate({ accountId: importAccountId, connections });
+    };
+    reader.readAsText(file);
+
+    // Reset file input so the same file can be selected again
+    e.target.value = '';
+  };
+
   const accounts = data ?? [];
 
   return (
     <div className="space-y-5">
+      {/* Hidden file input for CSV import */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".csv"
+        className="hidden"
+        onChange={handleFileSelected}
+      />
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">LinkedIn Accounts</h1>
@@ -94,10 +214,21 @@ export default function LinkedInAccountsPage() {
         </div>
       )}
 
-      {/* Sync Message */}
+      {/* Sync/Import Message */}
       {syncMessage && (
         <div className="rounded-xl border border-blue-200 bg-blue-50 p-3">
-          <p className="text-sm text-blue-800">{syncMessage}</p>
+          <p className="text-sm text-blue-800 whitespace-pre-line">{syncMessage}</p>
+        </div>
+      )}
+
+      {/* CSV Import Help */}
+      {accounts.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <p className="text-sm font-medium text-amber-800">💡 Import your LinkedIn connections</p>
+          <p className="text-xs text-amber-700 mt-1">
+            Go to LinkedIn → Settings → Data Privacy → Get a copy of your data → select &quot;Connections&quot; → Download.
+            Then click &quot;Import CSV&quot; on your account card to upload the file.
+          </p>
         </div>
       )}
 
@@ -134,13 +265,21 @@ export default function LinkedInAccountsPage() {
                 </p>
               )}
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <button
                   onClick={() => syncAccount.mutate(account.id)}
                   disabled={syncAccount.isPending}
                   className="flex-1 px-3 py-2 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition disabled:opacity-50"
                 >
                   {syncAccount.isPending ? 'Syncing...' : 'Sync'}
+                </button>
+                <button
+                  onClick={() => handleCSVImport(account.id)}
+                  disabled={importConnections.isPending}
+                  className="flex-1 px-3 py-2 text-xs font-medium text-green-600 bg-green-50 rounded-lg hover:bg-green-100 transition disabled:opacity-50"
+                  title="Import connections from a LinkedIn CSV export (Settings → Data Privacy → Get a copy of your data → Connections)"
+                >
+                  {importConnections.isPending ? 'Importing...' : 'Import CSV'}
                 </button>
                 {account.profileUrl && (
                   <a

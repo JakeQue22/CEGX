@@ -1,5 +1,6 @@
-import { IsString, IsOptional, IsEmail, IsBoolean } from 'class-validator';
+import { IsString, IsOptional, IsEmail, IsBoolean, IsArray, ValidateNested } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 
 export class CreateLinkedInAccountDto {
   @ApiProperty()
@@ -80,4 +81,49 @@ export class ConnectLinkedInDto {
   @IsOptional()
   @IsString()
   message?: string;
+}
+
+export class LinkedInConnectionImportRow {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  firstName?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  lastName?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  profileUrl?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  email?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  company?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  position?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  connectedOn?: string;
+}
+
+export class ImportLinkedInConnectionsDto {
+  @ApiProperty({ description: 'Array of connection records to import' })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => LinkedInConnectionImportRow)
+  connections: LinkedInConnectionImportRow[];
 }
