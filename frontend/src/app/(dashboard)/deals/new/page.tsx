@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import axiosInstance from '@/lib/axios';
-import { Supplier, Product, PipelineStage } from '@/types';
+import { Supplier, Product, PipelineStage, Courier } from '@/types';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
@@ -21,6 +21,8 @@ export default function NewDealPage() {
   const [quantity, setQuantity] = useState(1);
   const [salePrice, setSalePrice] = useState(0);
   const [adSpend, setAdSpend] = useState(0);
+  const [shippingCost, setShippingCost] = useState(0);
+  const [courierId, setCourierId] = useState('');
   const [stageId, setStageId] = useState('');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
@@ -37,6 +39,11 @@ export default function NewDealPage() {
       axiosInstance.get('/products', { params: { supplierId: supplierId || undefined, limit: 200 } }).then((r) =>
         Array.isArray(r.data) ? r.data : r.data.data ?? []),
     enabled: true,
+  });
+
+  const { data: couriers = [] } = useQuery<Courier[]>({
+    queryKey: ['couriers-list'],
+    queryFn: () => axiosInstance.get('/couriers').then((r) => Array.isArray(r.data) ? r.data : r.data.data ?? []),
   });
 
   const { data: stages = [] } = useQuery<PipelineStage[]>({
@@ -57,7 +64,7 @@ export default function NewDealPage() {
   const adPercent = settings?.defaultAdPercent ?? 10;
   const vatAmount = salePrice * (vatPercent / 100);
   const adAmount = adSpend || salePrice * (adPercent / 100);
-  const grossProfit = salePrice - totalCost - adAmount;
+  const grossProfit = salePrice - totalCost - adAmount - shippingCost;
   const marginPercent = salePrice > 0 ? (grossProfit / salePrice) * 100 : 0;
 
   const createDeal = useMutation({
@@ -84,8 +91,10 @@ export default function NewDealPage() {
       title,
       supplierId: supplierId || undefined,
       productId: productId || undefined,
+      courierId: courierId || undefined,
       quantity,
       salePrice,
+      shippingCost,
       stageId,
       notes: notes || undefined,
     });
@@ -128,7 +137,14 @@ export default function NewDealPage() {
             options={products.map((p) => ({ value: p.id, label: `${p.sku} – ${p.name}` }))}
             placeholder="Select product"
           />
-          <div className="grid grid-cols-2 gap-4">
+          <Select
+            label="Courier (optional)"
+            value={courierId}
+            onChange={(e) => setCourierId(e.target.value)}
+            options={couriers.map((c) => ({ value: c.id, label: c.name }))}
+            placeholder="Select courier"
+          />
+          <div className="grid grid-cols-3 gap-4">
             <Input
               label="Quantity"
               type="number"
@@ -143,6 +159,14 @@ export default function NewDealPage() {
               step={0.01}
               value={salePrice}
               onChange={(e) => setSalePrice(Number(e.target.value))}
+            />
+            <Input
+              label="Shipping Cost (£)"
+              type="number"
+              min={0}
+              step={0.01}
+              value={shippingCost}
+              onChange={(e) => setShippingCost(Number(e.target.value))}
             />
           </div>
           <Input
@@ -175,6 +199,7 @@ export default function NewDealPage() {
                 { label: 'Sale Price', value: salePrice },
                 { label: 'Total Cost', value: totalCost },
                 { label: 'Ad Spend', value: adAmount },
+                { label: 'Shipping', value: shippingCost },
                 { label: `VAT (${vatPercent}%)`, value: vatAmount },
                 { label: 'Gross Profit', value: grossProfit },
               ].map(({ label, value }) => (

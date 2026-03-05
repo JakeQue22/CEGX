@@ -48,6 +48,7 @@ export default function DealsPage() {
     { key: 'stage', header: 'Stage', render: (d) => <span className="text-sm text-gray-600">{d.stage?.name ?? '—'}</span> },
     { key: 'supplier', header: 'Supplier', render: (d) => d.supplier?.name ?? '—' },
     { key: 'salePrice', header: 'Sale Price', sortable: true, render: (d) => <GBPAmount amount={d.salePrice} /> },
+    { key: 'shippingCost', header: 'Shipping', render: (d) => d.shippingCost ? <GBPAmount amount={d.shippingCost} /> : <span className="text-gray-400">—</span> },
     { key: 'profitMarginPercent', header: 'Margin', sortable: true, render: (d) => (
       <span className={d.profitMarginPercent >= 20 ? 'text-green-600 font-medium' : d.profitMarginPercent >= 10 ? 'text-yellow-600 font-medium' : 'text-red-600 font-medium'}>
         {d.profitMarginPercent?.toFixed(1)}%
