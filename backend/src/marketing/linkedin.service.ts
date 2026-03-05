@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
+import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../common/prisma/prisma.service';
 import {
   CreateLinkedInAccountDto,
@@ -20,10 +21,13 @@ export class LinkedInService {
 
   // --- Account Management ---
   async createAccount(dto: CreateLinkedInAccountDto) {
+    const hashedPassword = dto.password
+      ? await bcrypt.hash(dto.password, 12)
+      : undefined;
     return this.prisma.linkedInAccount.create({
       data: {
         email: dto.email,
-        password: dto.password,
+        password: hashedPassword,
         name: dto.name,
         profileUrl: dto.profileUrl,
         sessionData: dto.sessionData,
