@@ -120,6 +120,7 @@ export default function CcsFrameworkDetailPage({ params }: { params: Promise<{ i
               { label: 'Start Date', value: framework.startDate ? new Date(framework.startDate).toLocaleDateString('en-GB') : '—' },
               { label: 'End Date', value: framework.endDate ? new Date(framework.endDate).toLocaleDateString('en-GB') : '—' },
               { label: 'Max Value', value: framework.maxValue ? `£${Number(framework.maxValue).toLocaleString()}` : '—' },
+              { label: 'Regulation', value: framework.regulation ?? '—' },
             ].map(({ label, value }) => (
               <div key={label}>
                 <dt className="text-xs text-gray-500">{label}</dt>
@@ -137,6 +138,18 @@ export default function CcsFrameworkDetailPage({ params }: { params: Promise<{ i
             <div className="mt-4 pt-4 border-t">
               <p className="text-xs text-gray-500 mb-1">Description</p>
               <p className="text-sm text-gray-700 whitespace-pre-wrap">{framework.description}</p>
+            </div>
+          )}
+          {framework.benefits && (
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-xs text-gray-500 mb-1">Benefits</p>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap">{framework.benefits}</p>
+            </div>
+          )}
+          {framework.productsServices && (
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-xs text-gray-500 mb-1">Products &amp; Services</p>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap">{framework.productsServices}</p>
             </div>
           )}
         </div>

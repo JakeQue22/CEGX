@@ -18,6 +18,9 @@ export interface ScrapedFramework {
   endDate?: string;
   websiteUrl: string;
   maxValue?: number;
+  benefits?: string;
+  productsServices?: string;
+  regulation?: string;
 }
 
 @Injectable()
@@ -132,7 +135,8 @@ export class CcsScraperService {
   }
 
   /**
-   * Scrape an individual framework detail page for lots, dates, and value info.
+   * Scrape an individual framework detail page for lots, dates, value, benefits,
+   * products/services, regulation, and other content from the CCS page.
    */
   async scrapeFrameworkDetail(reference: string): Promise<Partial<ScrapedFramework> & { lots: { lotNumber: string; title: string; description: string }[] }> {
     const result: Partial<ScrapedFramework> & { lots: { lotNumber: string; title: string; description: string }[] } = { lots: [] };
@@ -149,10 +153,20 @@ export class CcsScraperService {
       const description = $('.govuk-body-l, .lead-paragraph, main p').first().text().trim();
       if (description) result.description = description;
 
-      // Extract dates from summary list / key info
-      $('dt, .govuk-summary-list__key').each((_i, el) => {
+      // If no description from lead paragraph, try getting all intro paragraphs
+      if (!result.description) {
+        const introParas: string[] = [];
+        $('main .govuk-body, main p').each((_i, el) => {
+          const text = $(el).text().trim();
+          if (text && introParas.length < 3) introParas.push(text);
+        });
+        if (introParas.length) result.description = introParas.join('\n\n');
+      }
+
+      // Extract dates, values, category, regulation from summary list / key info
+      $('dt, .govuk-summary-list__key, th').each((_i, el) => {
         const label = $(el).text().trim().toLowerCase();
-        const value = $(el).next('dd, .govuk-summary-list__value').text().trim();
+        const value = $(el).next('dd, .govuk-summary-list__value, td').text().trim();
 
         if (label.includes('start date') || label.includes('start')) {
           result.startDate = this.parseUKDate(value);
@@ -169,7 +183,53 @@ export class CcsScraperService {
         if (label.includes('status')) {
           result.status = this.normaliseStatus(value);
         }
+        if (label.includes('regulation') || label.includes('pcr')) {
+          result.regulation = value;
+        }
       });
+
+      // Extract benefits section
+      const benefitsTexts: string[] = [];
+      $('h2, h3').each((_i, el) => {
+        const heading = $(el).text().trim().toLowerCase();
+        if (heading.includes('benefit') || heading.includes('why use')) {
+          // Collect all following list items and paragraphs until next heading
+          $(el).nextUntil('h2, h3').each((_j, sib) => {
+            const tag = $(sib).prop('tagName')?.toLowerCase();
+            if (tag === 'ul' || tag === 'ol') {
+              $(sib).find('li').each((_k, li) => {
+                const text = $(li).text().trim();
+                if (text) benefitsTexts.push(`• ${text}`);
+              });
+            } else {
+              const text = $(sib).text().trim();
+              if (text) benefitsTexts.push(text);
+            }
+          });
+        }
+      });
+      if (benefitsTexts.length) result.benefits = benefitsTexts.join('\n');
+
+      // Extract products/services section
+      const productsTexts: string[] = [];
+      $('h2, h3').each((_i, el) => {
+        const heading = $(el).text().trim().toLowerCase();
+        if (heading.includes('product') || heading.includes('service') || heading.includes('what')) {
+          $(el).nextUntil('h2, h3').each((_j, sib) => {
+            const tag = $(sib).prop('tagName')?.toLowerCase();
+            if (tag === 'ul' || tag === 'ol') {
+              $(sib).find('li').each((_k, li) => {
+                const text = $(li).text().trim();
+                if (text) productsTexts.push(`• ${text}`);
+              });
+            } else {
+              const text = $(sib).text().trim();
+              if (text) productsTexts.push(text);
+            }
+          });
+        }
+      });
+      if (productsTexts.length) result.productsServices = productsTexts.join('\n');
 
       // Extract lots
       $('h2, h3').each((_i, el) => {
@@ -265,7 +325,7 @@ export class CcsScraperService {
 
             if (dbFw && detail.lots.length > 0) {
               // Update framework with additional detail
-              if (detail.description || detail.startDate || detail.endDate) {
+              if (detail.description || detail.startDate || detail.endDate || detail.benefits || detail.productsServices || detail.regulation) {
                 await this.prisma.ccsFramework.update({
                   where: { id: dbFw.id },
                   data: {
@@ -275,6 +335,9 @@ export class CcsScraperService {
                     maxValue: detail.maxValue ?? dbFw.maxValue,
                     category: detail.category || dbFw.category,
                     status: detail.status || dbFw.status,
+                    benefits: detail.benefits || dbFw.benefits,
+                    productsServices: detail.productsServices || dbFw.productsServices,
+                    regulation: detail.regulation || dbFw.regulation,
                   },
                 });
               }

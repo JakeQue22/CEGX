@@ -556,6 +556,9 @@ model CcsFramework {
   endDate       DateTime?
   websiteUrl    String?
   maxValue      Decimal?  @db.Decimal(14, 2)
+  benefits      String?   @db.Text
+  productsServices String? @db.Text
+  regulation    String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

@@ -171,8 +171,13 @@ export default function CcsFrameworksPage() {
                 </div>
                 <p className="text-sm text-gray-500 mt-0.5">
                   {fw.category}
+                  {fw.startDate && ` • Starts ${new Date(fw.startDate).toLocaleDateString('en-GB')}`}
                   {fw.endDate && ` • Ends ${new Date(fw.endDate).toLocaleDateString('en-GB')}`}
+                  {fw.regulation && ` • ${fw.regulation}`}
                 </p>
+                {fw.description && (
+                  <p className="text-xs text-gray-400 mt-0.5 truncate max-w-2xl">{fw.description}</p>
+                )}
               </div>
               <div className="flex items-center gap-4 text-sm text-gray-400">
                 <span>{fw._count?.lots ?? 0} lots</span>

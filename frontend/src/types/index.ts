@@ -548,6 +548,9 @@ export interface CcsFramework {
   endDate?: string;
   websiteUrl?: string;
   maxValue?: number;
+  benefits?: string;
+  productsServices?: string;
+  regulation?: string;
   lots?: CcsLot[];
   opportunities?: CcsOpportunity[];
   _count?: { lots: number; opportunities: number };
