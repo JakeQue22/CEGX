@@ -4,6 +4,7 @@ import {
   IsNumber,
   IsBoolean,
   IsInt,
+  IsIn,
   Min,
   Max,
 } from 'class-validator';
@@ -173,6 +174,6 @@ export class UpdateSettingsDto {
 
   @ApiPropertyOptional({ description: 'Stripe mode: "test" or "live"' })
   @IsOptional()
-  @IsString()
+  @IsIn(['test', 'live'])
   stripeMode?: string;
 }
