@@ -1,15 +1,34 @@
 'use client';
 
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '@/lib/axios';
 import { useSettings } from '@/hooks/useSettings';
-import { CompanySettings } from '@/types';
+import { CompanySettings, User, Role } from '@/types';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
-const TABS = ['Company', 'Email', 'Notifications'] as const;
+const TABS = ['Company', 'Email', 'Notifications', 'Users'] as const;
+
+const ROLE_OPTIONS: { value: Role; label: string }[] = [
+  { value: 'ADMIN', label: 'Admin' },
+  { value: 'SALES_MANAGER', label: 'Sales Manager' },
+  { value: 'PROCUREMENT_OFFICER', label: 'Procurement Officer' },
+  { value: 'VIEWER', label: 'Viewer' },
+];
+
+interface CreateUserPayload {
+  name: string;
+  email: string;
+  phone?: string;
+  title?: string;
+  department?: string;
+  role: Role;
+  password?: string;
+}
 type Tab = (typeof TABS)[number];
 
 export default function SettingsPage() {
@@ -18,9 +37,41 @@ export default function SettingsPage() {
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
 
+  const queryClient = useQueryClient();
   const [companyForm, setCompanyForm] = useState<Partial<CompanySettings>>({});
   const [emailForm, setEmailForm] = useState<Partial<CompanySettings>>({});
   const [notifForm, setNotifForm] = useState<Partial<CompanySettings>>({});
+
+  const emptyUserForm: CreateUserPayload = { name: '', email: '', phone: '', title: '', department: '', role: 'VIEWER', password: '' };
+  const [userForm, setUserForm] = useState<CreateUserPayload>(emptyUserForm);
+
+  const { data: users = [] } = useQuery<User[]>({
+    queryKey: ['users'],
+    queryFn: async () => (await axiosInstance.get('/users')).data,
+    enabled: tab === 'Users',
+  });
+
+  const createUser = useMutation({
+    mutationFn: (payload: CreateUserPayload) => {
+      const body = { ...payload };
+      if (!body.password) delete body.password;
+      if (!body.phone) delete body.phone;
+      if (!body.title) delete body.title;
+      if (!body.department) delete body.department;
+      return axiosInstance.post('/users', body);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      setUserForm(emptyUserForm);
+      setSuccess('User created successfully.');
+      setError('');
+      setTimeout(() => setSuccess(''), 3000);
+    },
+    onError: (err: unknown) => {
+      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to create user');
+      setSuccess('');
+    },
+  });
 
   // Merge settings into local form state on first load
   const merged = { ...settings, ...companyForm };
@@ -53,7 +104,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className={`space-y-6 ${tab === 'Users' ? 'max-w-4xl' : 'max-w-2xl'}`}>
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
         <p className="text-sm text-gray-500 mt-1">Manage your company and system preferences</p>
@@ -189,6 +240,104 @@ export default function SettingsPage() {
             <Button type="submit" loading={save.isPending}>Save Notification Settings</Button>
           </div>
         </form>
+      )}
+
+      {/* Users Tab */}
+      {tab === 'Users' && (
+        <>
+          {/* Users List */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-base font-semibold text-gray-900">Existing Users</h2>
+            </div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 bg-gray-50">
+                  <th className="text-left px-6 py-3 font-medium text-gray-600">Name</th>
+                  <th className="text-left px-6 py-3 font-medium text-gray-600">Email</th>
+                  <th className="text-left px-6 py-3 font-medium text-gray-600">Role</th>
+                  <th className="text-left px-6 py-3 font-medium text-gray-600">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-8 text-center text-gray-400">No users found</td>
+                  </tr>
+                ) : (
+                  users.map((u) => (
+                    <tr key={u.id} className="border-b border-gray-100 last:border-0">
+                      <td className="px-6 py-3 text-gray-900">{u.name}</td>
+                      <td className="px-6 py-3 text-gray-600">{u.email}</td>
+                      <td className="px-6 py-3"><Badge label={u.role} /></td>
+                      <td className="px-6 py-3">
+                        <Badge
+                          label={u.isActive !== false ? 'Active' : 'Inactive'}
+                          variant={u.isActive !== false ? 'success' : 'neutral'}
+                        />
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Create User Form */}
+          <form
+            onSubmit={(e) => { e.preventDefault(); createUser.mutate(userForm); }}
+            className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-4"
+          >
+            <h2 className="text-base font-semibold text-gray-900">Create User</h2>
+            <Input
+              label="Name *"
+              value={userForm.name}
+              onChange={(e) => setUserForm((f) => ({ ...f, name: e.target.value }))}
+              required
+            />
+            <Input
+              label="Email *"
+              type="email"
+              value={userForm.email}
+              onChange={(e) => setUserForm((f) => ({ ...f, email: e.target.value }))}
+              required
+            />
+            <Input
+              label="Phone"
+              value={userForm.phone ?? ''}
+              onChange={(e) => setUserForm((f) => ({ ...f, phone: e.target.value }))}
+            />
+            <Input
+              label="Title"
+              value={userForm.title ?? ''}
+              onChange={(e) => setUserForm((f) => ({ ...f, title: e.target.value }))}
+            />
+            <Input
+              label="Department"
+              value={userForm.department ?? ''}
+              onChange={(e) => setUserForm((f) => ({ ...f, department: e.target.value }))}
+            />
+            <Select
+              label="Role"
+              value={userForm.role}
+              onChange={(e) => setUserForm((f) => ({ ...f, role: e.target.value as Role }))}
+              options={ROLE_OPTIONS}
+            />
+            <div>
+              <Input
+                label="Password"
+                type="password"
+                value={userForm.password ?? ''}
+                onChange={(e) => setUserForm((f) => ({ ...f, password: e.target.value }))}
+                placeholder="••••••••"
+              />
+              <p className="text-xs text-gray-400 mt-1">Leave blank to generate a random password</p>
+            </div>
+            <div className="pt-2">
+              <Button type="submit" loading={createUser.isPending}>Create User</Button>
+            </div>
+          </form>
+        </>
       )}
     </div>
   );
