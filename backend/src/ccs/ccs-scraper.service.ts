@@ -113,7 +113,7 @@ export class CcsScraperService {
           reference: reference.toUpperCase(),
           title,
           description: '',
-          category: categoryText || 'General',
+          category: categoryText || title,
           status: this.normaliseStatus(statusText),
           websiteUrl: href.startsWith('http') ? href : `${this.baseUrl}${href}`,
         });
