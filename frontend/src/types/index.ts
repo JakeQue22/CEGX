@@ -14,6 +14,7 @@ export type NotificationType =
   | 'FOLLOW_UP_DUE'
   | 'CAMPAIGN_SENT'
   | 'CAMPAIGN_FAILED'
+  | 'CUSTOMER_ORDER'
   | 'SYSTEM';
 
 // ─── Core Entities ───────────────────────────────────────────────────────────
@@ -23,6 +24,10 @@ export interface User {
   name: string;
   email: string;
   role: Role;
+  phone?: string;
+  title?: string;
+  department?: string;
+  isActive?: boolean;
   avatarUrl?: string;
   createdAt: string;
   updatedAt: string;
@@ -51,10 +56,13 @@ export interface CompanySettings {
 export interface Supplier {
   id: string;
   name: string;
+  contactName?: string;
   contactEmail?: string;
   contactPhone?: string;
   country?: string;
   rating?: number;
+  salesPersonId?: string;
+  salesPerson?: { id: string; name: string; email: string };
   isActive?: boolean;
   notes?: string;
   _count?: { products: number; deals: number };
@@ -70,11 +78,56 @@ export interface ProductCategory {
   updatedAt: string;
 }
 
+export interface Courier {
+  id: string;
+  name: string;
+  contactName?: string;
+  email?: string;
+  phone?: string;
+  website?: string;
+  trackingUrl?: string;
+  isActive: boolean;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Customer {
+  id: string;
+  companyName: string;
+  contactName?: string;
+  email: string;
+  phone?: string;
+  notes?: string;
+  categoryIds?: string[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CustomerOrder {
+  id: string;
+  customerId: string;
+  customer?: Customer;
+  productId?: string;
+  productName: string;
+  quantity: number;
+  deliveryLocation?: string;
+  courierId?: string;
+  courier?: Courier;
+  status: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface BulkPricing {
   id: string;
   productId: string;
   minQuantity: number;
   bulkCostPrice: number;
+  discountType?: string;
+  discountValue?: number;
 }
 
 export interface Product {
@@ -90,6 +143,7 @@ export interface Product {
   supplierId?: string;
   supplier?: Supplier;
   bulkPricings?: BulkPricing[];
+  minOrderQuantity?: number;
   isArchived: boolean;
   createdAt: string;
   updatedAt: string;
@@ -127,6 +181,9 @@ export interface Deal {
   vat: number;
   grossProfit: number;
   profitMarginPercent: number;
+  courierId?: string;
+  courier?: Courier;
+  shippingCost?: number;
   notes?: string;
   closedAt?: string;
   stageHistory?: DealStageHistory[];
