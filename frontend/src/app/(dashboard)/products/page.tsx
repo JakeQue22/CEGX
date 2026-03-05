@@ -43,7 +43,15 @@ export default function ProductsPage() {
     { key: 'name', header: 'Name', sortable: true, render: (p) => <span className="font-medium text-gray-900">{p.name}</span> },
     { key: 'category', header: 'Category', render: (p) => p.category?.name ?? '—' },
     { key: 'supplier', header: 'Supplier', render: (p) => p.supplier?.name ?? '—' },
-    { key: 'baseCostPrice', header: 'Base Cost', sortable: true, render: (p) => <GBPAmount amount={p.baseCostPrice} /> },
+    { key: 'baseCostPrice', header: 'Base Cost', sortable: true, render: (p) => <GBPAmount amount={Number(p.baseCostPrice)} /> },
+    { key: 'retailPrice', header: 'Retail Price', sortable: true, render: (p) => p.retailPrice != null ? <GBPAmount amount={Number(p.retailPrice)} /> : <span className="text-gray-400">—</span> },
+    {
+      key: 'margin', header: 'Margin', render: (p) => {
+        if (p.retailPrice == null || Number(p.retailPrice) === 0) return <span className="text-gray-400">—</span>;
+        const margin = ((Number(p.retailPrice) - Number(p.baseCostPrice)) / Number(p.retailPrice)) * 100;
+        return <span className={`font-medium ${margin >= 20 ? 'text-green-600' : margin >= 10 ? 'text-yellow-600' : 'text-red-600'}`}>{margin.toFixed(1)}%</span>;
+      },
+    },
     { key: 'minOrderQuantity', header: 'Min Qty', render: (p) => p.minOrderQuantity ?? 1 },
     { key: 'isArchived', header: 'Status', render: (p) => p.isArchived ? <Badge label="ARCHIVED" variant="neutral" /> : <Badge label="ACTIVE" variant="success" /> },
   ];
