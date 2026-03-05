@@ -11,6 +11,7 @@ export default function LinkedInAccountsPage() {
   const queryClient = useQueryClient();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newAccount, setNewAccount] = useState({ email: '', password: '', name: '', profileUrl: '' });
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery<LinkedInAccount[]>({
     queryKey: ['linkedin-accounts'],
@@ -28,7 +29,24 @@ export default function LinkedInAccountsPage() {
   });
 
   const syncAccount = useMutation({
-    mutationFn: (accountId: string) => axiosInstance.post(`/marketing/linkedin/sync/${accountId}`),
+    mutationFn: (accountId: string) => axiosInstance.post(`/marketing/linkedin/sync/${accountId}`).then((r) => r.data),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['linkedin-accounts'] });
+      const stats = data?.stats;
+      setSyncMessage(`Sync started for ${data?.email ?? 'account'}${stats ? ` — ${stats.connections} connections, ${stats.messages} messages` : ''}`);
+      setTimeout(() => setSyncMessage(null), 5000);
+    },
+    onError: () => {
+      setSyncMessage('Failed to sync — please try again');
+      setTimeout(() => setSyncMessage(null), 5000);
+    },
+  });
+
+  const deleteAccount = useMutation({
+    mutationFn: (accountId: string) => axiosInstance.delete(`/marketing/linkedin/accounts/${accountId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['linkedin-accounts'] });
+    },
   });
 
   const accounts = data ?? [];
@@ -68,6 +86,13 @@ export default function LinkedInAccountsPage() {
             </button>
             <button onClick={() => setShowAddForm(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Cancel</button>
           </div>
+        </div>
+      )}
+
+      {/* Sync Message */}
+      {syncMessage && (
+        <div className="rounded-xl border border-blue-200 bg-blue-50 p-3">
+          <p className="text-sm text-blue-800">{syncMessage}</p>
         </div>
       )}
 
@@ -122,6 +147,17 @@ export default function LinkedInAccountsPage() {
                     Profile
                   </a>
                 )}
+                <button
+                  onClick={() => {
+                    if (confirm('Remove this LinkedIn account? This will delete all connections and messages.')) {
+                      deleteAccount.mutate(account.id);
+                    }
+                  }}
+                  disabled={deleteAccount.isPending}
+                  className="px-3 py-2 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition disabled:opacity-50"
+                >
+                  {deleteAccount.isPending ? 'Removing...' : 'Remove'}
+                </button>
               </div>
             </div>
           ))}

@@ -10,7 +10,7 @@ import Link from 'next/link';
 
 export default function CcsOverviewPage() {
   const queryClient = useQueryClient();
-  const [syncResult, setSyncResult] = useState<{ created: number; updated: number; errors: string[] } | null>(null);
+  const [syncResult, setSyncResult] = useState<{ created: number; updated: number; errors: string[]; opportunitiesCreated?: number; opportunitiesUpdated?: number } | null>(null);
 
   const { data: stats, isLoading } = useQuery<CcsStats>({
     queryKey: ['ccs-stats'],
@@ -25,7 +25,17 @@ export default function CcsOverviewPage() {
   const syncMutation = useMutation({
     mutationFn: () => axiosInstance.post('/ccs/scrape/sync').then((r) => r.data),
     onSuccess: (data) => {
-      setSyncResult(data);
+      // Handle nested response shape: { frameworks: {...}, opportunities: {...} }
+      const fw = data?.frameworks ?? data ?? { created: 0, updated: 0, errors: [] };
+      const opp = data?.opportunities ?? { created: 0, updated: 0, errors: [] };
+      const allErrors = [...(fw.errors ?? []), ...(opp.errors ?? [])];
+      setSyncResult({
+        created: fw.created ?? 0,
+        updated: fw.updated ?? 0,
+        errors: allErrors,
+        opportunitiesCreated: opp.created ?? 0,
+        opportunitiesUpdated: opp.updated ?? 0,
+      });
       queryClient.invalidateQueries({ queryKey: ['ccs-stats'] });
       queryClient.invalidateQueries({ queryKey: ['ccs-categories'] });
       queryClient.invalidateQueries({ queryKey: ['ccs-frameworks'] });
@@ -62,7 +72,8 @@ export default function CcsOverviewPage() {
 
       {/* Sync Result */}
       {syncResult && (() => {
-        const isFullFailure = syncResult.errors.length > 0 && syncResult.created === 0 && syncResult.updated === 0;
+        const isFullFailure = syncResult.errors.length > 0 && syncResult.created === 0 && syncResult.updated === 0
+          && (syncResult.opportunitiesCreated ?? 0) === 0 && (syncResult.opportunitiesUpdated ?? 0) === 0;
         return (
         <div className={`rounded-xl border p-4 ${isFullFailure ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
           <div className="flex items-start gap-3">
@@ -71,6 +82,11 @@ export default function CcsOverviewPage() {
               <p className="text-sm font-medium text-gray-900">
                 CCS Sync Complete: {syncResult.created} new frameworks, {syncResult.updated} updated
               </p>
+              {((syncResult.opportunitiesCreated ?? 0) > 0 || (syncResult.opportunitiesUpdated ?? 0) > 0) && (
+                <p className="text-sm text-gray-700">
+                  Opportunities: {syncResult.opportunitiesCreated ?? 0} new, {syncResult.opportunitiesUpdated ?? 0} updated
+                </p>
+              )}
               {syncResult.errors.length > 0 && (
                 <div className="mt-2 space-y-1">
                   {syncResult.errors.slice(0, 5).map((err, i) => (

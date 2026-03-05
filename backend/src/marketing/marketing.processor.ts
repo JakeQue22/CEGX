@@ -60,11 +60,46 @@ export class MarketingProcessor {
   @Process('linkedin-sync')
   async handleLinkedInSync(job: Job<{ accountId: string }>) {
     this.logger.log(`Syncing LinkedIn account ${job.data.accountId}`);
-    // Browser automation:
-    // 1. Load LinkedIn session
-    // 2. Scrape inbox for new messages
-    // 3. Update connection statuses
-    // 4. Save new messages to DB
+
+    const account = await this.prisma.linkedInAccount.findUnique({
+      where: { id: job.data.accountId },
+      include: {
+        connections: {
+          where: { status: 'PENDING' },
+          select: { id: true, profileUrl: true, createdAt: true },
+        },
+      },
+    });
+
+    if (!account) {
+      this.logger.warn(`LinkedIn account ${job.data.accountId} not found, skipping sync`);
+      return;
+    }
+
+    // Mark stale pending connections (older than 30 days) as expired
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const staleConnections = account.connections.filter(
+      (c) => c.createdAt < thirtyDaysAgo,
+    );
+    for (const conn of staleConnections) {
+      await this.prisma.linkedInConnection.update({
+        where: { id: conn.id },
+        data: { status: 'EXPIRED' },
+      });
+    }
+
+    if (staleConnections.length > 0) {
+      this.logger.log(
+        `Marked ${staleConnections.length} stale pending connections as expired for account ${account.email}`,
+      );
+    }
+
+    // Note: Full inbox sync via browser automation would require a headless browser
+    // (e.g. Puppeteer/Playwright) to log in and scrape LinkedIn messages.
+    // This is a placeholder for that integration.
+    this.logger.log(
+      `LinkedIn sync completed for ${account.email}: ${staleConnections.length} stale connections expired`,
+    );
   }
 
   @Process('send-outreach-email')

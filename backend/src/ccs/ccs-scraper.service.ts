@@ -80,7 +80,11 @@ export class CcsScraperService {
 
     const response = await fetch(fetchUrl, { headers });
     if (!response.ok) throw new Error(`HTTP ${response.status} fetching ${url}`);
-    return response.text();
+    const text = await response.text();
+    if (!text || text.length < 100) {
+      throw new Error(`Empty or very short response (${text.length} bytes) from ${url}`);
+    }
+    return text;
   }
 
   /**
@@ -110,8 +114,8 @@ export class CcsScraperService {
           const href = $el.attr('href') || '';
           const title = $el.text().trim();
 
-          // Extract reference from URL (e.g. /agreements/RM6187)
-          const refMatch = href.match(/\/agreements\/(RM\d+)/i);
+          // Extract reference from URL (e.g. /agreements/RM6187 or /agreements/RM3764.3)
+          const refMatch = href.match(/\/agreements\/(RM[\d.]+)/i);
           if (!refMatch || !title) return;
 
           const reference = refMatch[1].toUpperCase();
@@ -340,6 +344,10 @@ export class CcsScraperService {
 
     try {
       const scraped = await this.scrapeFrameworksList();
+
+      if (scraped.length === 0) {
+        summary.errors.push('No frameworks found on CCS website — the page structure may have changed or the site may be temporarily unavailable');
+      }
 
       for (const fw of scraped) {
         try {

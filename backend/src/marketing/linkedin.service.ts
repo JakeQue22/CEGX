@@ -196,12 +196,36 @@ export class LinkedInService {
   async syncAccount(accountId: string) {
     const account = await this.prisma.linkedInAccount.findUnique({
       where: { id: accountId },
+      include: {
+        _count: { select: { connections: true, messages: true } },
+        connections: {
+          where: { status: 'CONNECTED' },
+          select: { id: true },
+        },
+      },
     });
     if (!account) throw new NotFoundException('Account not found');
 
+    // Update lastSyncAt timestamp
+    await this.prisma.linkedInAccount.update({
+      where: { id: accountId },
+      data: { lastSyncAt: new Date() },
+    });
+
+    // Queue the background sync job for browser automation
     await this.marketingQueue.add('linkedin-sync', { accountId });
 
-    this.logger.log(`Sync queued for LinkedIn account ${accountId}`);
-    return { message: 'Sync queued' };
+    this.logger.log(`Sync triggered for LinkedIn account ${accountId} (${account.email})`);
+    return {
+      message: 'Sync started',
+      accountId,
+      email: account.email,
+      lastSyncAt: new Date().toISOString(),
+      stats: {
+        connections: account._count.connections,
+        messages: account._count.messages,
+        activeConnections: account.connections.length,
+      },
+    };
   }
 }
