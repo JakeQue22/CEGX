@@ -14,7 +14,7 @@ out/
 .env
 .env.local
 .env.*.local
-# Allow backend and frontend .env (production defaults, no real secrets)
+# Allow backend and frontend .env (production defaults, override via Docker env vars)
 !backend/.env
 !frontend/.env
 
