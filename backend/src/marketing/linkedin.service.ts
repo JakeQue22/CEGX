@@ -285,8 +285,8 @@ export class LinkedInService {
                 });
                 importedConnections++;
               }
-            } catch {
-              // Skip individual connection errors
+            } catch (err) {
+              this.logger.warn(`Failed to import connection ${conn.profileUrl}: ${(err as Error).message}`);
             }
           }
 
@@ -324,8 +324,8 @@ export class LinkedInService {
                   }
                 }
               }
-            } catch {
-              // Skip individual message errors
+            } catch (err) {
+              this.logger.warn(`Failed to import message from ${thread.participantName}: ${(err as Error).message}`);
             }
           }
         }

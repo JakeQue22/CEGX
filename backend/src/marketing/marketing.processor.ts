@@ -153,8 +153,8 @@ export class MarketingProcessor {
               });
               imported++;
             }
-          } catch {
-            // Skip individual errors
+          } catch (err) {
+            this.logger.warn(`Failed to import connection ${conn.profileUrl}: ${(err as Error).message}`);
           }
         }
         this.logger.log(`Background sync imported ${imported} new connections for ${account.email}`);

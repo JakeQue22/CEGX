@@ -305,15 +305,15 @@ export default function LinkedInPage() {
                 />
                 <button
                   onClick={() => {
-                    if (!connectForm.profileUrl) return;
+                    if (!connectForm.profileUrl || accounts.length === 0) return;
                     connectRequest.mutate({
-                      accountId: selectedAccountId || accounts[0]?.id,
+                      accountId: selectedAccountId || accounts[0].id,
                       profileUrl: connectForm.profileUrl,
                       message: connectForm.message || undefined,
                     });
                     setConnectForm({ profileUrl: '', message: '' });
                   }}
-                  disabled={!connectForm.profileUrl || connectRequest.isPending}
+                  disabled={!connectForm.profileUrl || connectRequest.isPending || accounts.length === 0}
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition disabled:opacity-50"
                 >
                   Connect
