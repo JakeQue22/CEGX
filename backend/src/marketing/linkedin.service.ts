@@ -3,12 +3,12 @@ import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { LinkedInBrowserService } from './linkedin-browser.service';
 import {
   CreateLinkedInAccountDto,
   UpdateLinkedInAccountDto,
   SendLinkedInMessageDto,
   ConnectLinkedInDto,
-  ImportLinkedInConnectionsDto,
 } from './dto/linkedin.dto';
 
 @Injectable()
@@ -17,6 +17,7 @@ export class LinkedInService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly browserService: LinkedInBrowserService,
     @InjectQueue('marketing') private readonly marketingQueue: Queue,
   ) {}
 
@@ -221,6 +222,122 @@ export class LinkedInService {
       data: { status: 'EXPIRED' },
     });
 
+    let importedConnections = 0;
+    let importedMessages = 0;
+    const errors: string[] = [];
+
+    // Attempt browser-based sync if we have credentials/session
+    if (account.password || account.sessionData) {
+      try {
+        // Step 1: Ensure we have a valid session
+        let sessionData = account.sessionData;
+        if (account.password) {
+          const loginResult = await this.browserService.login(
+            account.email,
+            account.password,
+            sessionData || undefined,
+          );
+          if (loginResult.success && loginResult.sessionData) {
+            sessionData = loginResult.sessionData;
+            await this.prisma.linkedInAccount.update({
+              where: { id: accountId },
+              data: { sessionData: loginResult.sessionData },
+            });
+          } else if (!loginResult.success) {
+            errors.push(loginResult.error || 'Login failed');
+          }
+        }
+
+        // Step 2: Fetch connections
+        if (sessionData) {
+          const connResult = await this.browserService.fetchConnections(sessionData);
+          if (connResult.error) {
+            errors.push(connResult.error);
+          }
+          for (const conn of connResult.connections) {
+            try {
+              const existing = await this.prisma.linkedInConnection.findFirst({
+                where: { accountId, profileUrl: conn.profileUrl },
+              });
+              if (existing) {
+                await this.prisma.linkedInConnection.update({
+                  where: { id: existing.id },
+                  data: {
+                    name: conn.name || existing.name,
+                    headline: conn.headline || existing.headline,
+                    company: conn.company || existing.company,
+                    status: 'CONNECTED',
+                    connectedAt: existing.connectedAt || new Date(),
+                  },
+                });
+              } else {
+                await this.prisma.linkedInConnection.create({
+                  data: {
+                    accountId,
+                    profileUrl: conn.profileUrl,
+                    name: conn.name,
+                    headline: conn.headline,
+                    company: conn.company,
+                    location: conn.location,
+                    status: 'CONNECTED',
+                    connectedAt: new Date(),
+                  },
+                });
+                importedConnections++;
+              }
+            } catch {
+              // Skip individual connection errors
+            }
+          }
+
+          // Step 3: Fetch inbox threads
+          const inboxResult = await this.browserService.fetchInbox(sessionData);
+          if (inboxResult.error) {
+            errors.push(inboxResult.error);
+          }
+          for (const thread of inboxResult.threads) {
+            try {
+              // Try to match to an existing connection by name
+              if (thread.lastMessage) {
+                const connection = await this.prisma.linkedInConnection.findFirst({
+                  where: { accountId, name: { contains: thread.participantName.split(' ')[0] } },
+                });
+                if (connection) {
+                  // Check if we already have this message (avoid duplicates)
+                  const existingMsg = await this.prisma.linkedInMessage.findFirst({
+                    where: {
+                      connectionId: connection.id,
+                      content: thread.lastMessage.slice(0, 100),
+                    },
+                  });
+                  if (!existingMsg) {
+                    await this.prisma.linkedInMessage.create({
+                      data: {
+                        accountId,
+                        connectionId: connection.id,
+                        direction: 'INBOUND',
+                        content: thread.lastMessage,
+                        isRead: !thread.isUnread,
+                      },
+                    });
+                    importedMessages++;
+                  }
+                }
+              }
+            } catch {
+              // Skip individual message errors
+            }
+          }
+        }
+      } catch (error) {
+        const msg = (error as Error).message;
+        this.logger.error(`Browser sync error for ${account.email}: ${msg}`);
+        errors.push(`Browser sync error: ${msg}`);
+      }
+    } else {
+      errors.push('No credentials stored — please update the account with a password to enable automated sync.');
+    }
+
     // Get connection counts by status
     const [activeCount, pendingCount] = await Promise.all([
       this.prisma.linkedInConnection.count({ where: { accountId, status: 'CONNECTED' } }),
@@ -228,7 +345,7 @@ export class LinkedInService {
     ]);
 
     this.logger.log(
-      `LinkedIn sync for ${account.email}: ${account._count.connections} connections, ${account._count.messages} messages, ${expireResult.count} expired`,
+      `LinkedIn sync for ${account.email}: ${importedConnections} new connections, ${importedMessages} new messages, ${expireResult.count} expired`,
     );
 
     return {
@@ -237,94 +354,16 @@ export class LinkedInService {
       email: account.email,
       lastSyncAt: new Date().toISOString(),
       stats: {
-        connections: account._count.connections,
-        messages: account._count.messages,
+        connections: activeCount + pendingCount,
+        messages: account._count.messages + importedMessages,
         activeConnections: activeCount,
         pendingConnections: pendingCount,
         expiredThisSync: expireResult.count,
+        importedConnections,
+        importedMessages,
       },
-      note: 'Automated LinkedIn data import requires browser automation (Puppeteer/Playwright) which is not yet configured. Add connections manually via the Connect feature or import them through the API.',
+      errors: errors.length > 0 ? errors : undefined,
     };
   }
 
-  // --- CSV Import ---
-  private readonly MAX_RETURNED_ERRORS = 10;
-
-  async importConnections(accountId: string, dto: ImportLinkedInConnectionsDto) {
-    const account = await this.prisma.linkedInAccount.findUnique({
-      where: { id: accountId },
-    });
-    if (!account) throw new NotFoundException('Account not found');
-
-    if (!dto.connections || dto.connections.length === 0) {
-      throw new BadRequestException('No connections provided');
-    }
-
-    let created = 0;
-    let skipped = 0;
-    const errors: string[] = [];
-
-    for (const conn of dto.connections) {
-      try {
-        const name = [conn.firstName, conn.lastName].filter(Boolean).join(' ').trim() || 'Unknown';
-        const profileUrl = conn.profileUrl?.trim();
-
-        if (!profileUrl && !conn.email?.trim()) {
-          skipped++;
-          continue;
-        }
-
-        // Use profileUrl as unique key, or build a placeholder from email
-        const uniqueUrl = profileUrl || `linkedin://connection/${encodeURIComponent(conn.email!.trim())}`;
-
-        // Check for existing connection (by accountId + profileUrl)
-        const existing = await this.prisma.linkedInConnection.findFirst({
-          where: { accountId, profileUrl: uniqueUrl },
-        });
-
-        if (existing) {
-          // Update with any new data
-          await this.prisma.linkedInConnection.update({
-            where: { id: existing.id },
-            data: {
-              name: name || existing.name,
-              headline: conn.position || existing.headline,
-              company: conn.company || existing.company,
-              status: 'CONNECTED',
-              connectedAt: conn.connectedOn ? new Date(conn.connectedOn) : existing.connectedAt,
-            },
-          });
-          skipped++;
-        } else {
-          await this.prisma.linkedInConnection.create({
-            data: {
-              accountId,
-              profileUrl: uniqueUrl,
-              name,
-              headline: conn.position || undefined,
-              company: conn.company || undefined,
-              status: 'CONNECTED',
-              connectedAt: conn.connectedOn ? new Date(conn.connectedOn) : new Date(),
-            },
-          });
-          created++;
-        }
-      } catch (err) {
-        const connName = [conn.firstName, conn.lastName].filter(Boolean).join(' ') || 'unknown';
-        errors.push(`${connName}: ${(err as Error).message}`);
-      }
-    }
-
-    this.logger.log(
-      `LinkedIn import for ${account.email}: ${created} created, ${skipped} skipped, ${errors.length} errors`,
-    );
-
-    return {
-      message: 'Import complete',
-      accountId,
-      email: account.email,
-      stats: { created, skipped, errors: errors.length },
-      errors: errors.slice(0, this.MAX_RETURNED_ERRORS),
-    };
-  }
 }

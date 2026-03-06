@@ -3,6 +3,7 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { LeadScrapingService } from './lead-scraping.service';
+import { LinkedInBrowserService } from './linkedin-browser.service';
 
 @Processor('marketing')
 export class MarketingProcessor {
@@ -11,6 +12,7 @@ export class MarketingProcessor {
   constructor(
     private readonly prisma: PrismaService,
     private readonly leadScrapingService: LeadScrapingService,
+    private readonly browserService: LinkedInBrowserService,
   ) {}
 
   @Process('run-campaign')
@@ -38,11 +40,33 @@ export class MarketingProcessor {
     }>,
   ) {
     this.logger.log(`Processing LinkedIn connection to ${job.data.profileUrl}`);
-    // Browser automation would go here:
-    // 1. Load LinkedIn session from account
-    // 2. Navigate to profile
-    // 3. Send connection request with optional message
-    // 4. Update connection status
+
+    const account = await this.prisma.linkedInAccount.findUnique({
+      where: { id: job.data.accountId },
+    });
+    if (!account || !account.sessionData) {
+      this.logger.warn(`No session data for account ${job.data.accountId}, skipping connection request`);
+      return;
+    }
+
+    const result = await this.browserService.sendConnectionRequest(
+      account.sessionData,
+      job.data.profileUrl,
+      job.data.message,
+    );
+
+    if (result.success) {
+      await this.prisma.linkedInConnection.update({
+        where: { id: job.data.connectionId },
+        data: {
+          name: result.name || 'Pending...',
+          status: 'PENDING',
+        },
+      });
+      this.logger.log(`Connection request sent to ${result.name || job.data.profileUrl}`);
+    } else {
+      this.logger.error(`Connection request failed: ${result.error}`);
+    }
   }
 
   @Process('linkedin-send-message')
@@ -50,11 +74,27 @@ export class MarketingProcessor {
     job: Job<{ messageId: string; connectionId: string; content: string }>,
   ) {
     this.logger.log(`Sending LinkedIn message ${job.data.messageId}`);
-    // Browser automation:
-    // 1. Load LinkedIn session
-    // 2. Navigate to conversation
-    // 3. Send message
-    // 4. Update message status
+
+    const connection = await this.prisma.linkedInConnection.findUnique({
+      where: { id: job.data.connectionId },
+      include: { account: true },
+    });
+    if (!connection || !connection.account.sessionData) {
+      this.logger.warn(`No session data for connection ${job.data.connectionId}, skipping message send`);
+      return;
+    }
+
+    const result = await this.browserService.sendMessage(
+      connection.account.sessionData,
+      connection.profileUrl,
+      job.data.content,
+    );
+
+    if (result.success) {
+      this.logger.log(`Message sent to ${connection.name}`);
+    } else {
+      this.logger.error(`Message send failed: ${result.error}`);
+    }
   }
 
   @Process('linkedin-sync')
@@ -63,12 +103,6 @@ export class MarketingProcessor {
 
     const account = await this.prisma.linkedInAccount.findUnique({
       where: { id: job.data.accountId },
-      include: {
-        connections: {
-          where: { status: 'PENDING' },
-          select: { id: true, profileUrl: true, createdAt: true },
-        },
-      },
     });
 
     if (!account) {
@@ -79,28 +113,55 @@ export class MarketingProcessor {
     // Mark stale pending connections (older than threshold) as expired
     const STALE_THRESHOLD_DAYS = 30;
     const cutoffDate = new Date(Date.now() - STALE_THRESHOLD_DAYS * 24 * 60 * 60 * 1000);
-    const staleConnections = account.connections.filter(
-      (c) => c.createdAt < cutoffDate,
-    );
-    for (const conn of staleConnections) {
-      await this.prisma.linkedInConnection.update({
-        where: { id: conn.id },
-        data: { status: 'EXPIRED' },
-      });
-    }
+    const expireResult = await this.prisma.linkedInConnection.updateMany({
+      where: {
+        accountId: account.id,
+        status: 'PENDING',
+        createdAt: { lt: cutoffDate },
+      },
+      data: { status: 'EXPIRED' },
+    });
 
-    if (staleConnections.length > 0) {
+    if (expireResult.count > 0) {
       this.logger.log(
-        `Marked ${staleConnections.length} stale pending connections as expired for account ${account.email}`,
+        `Marked ${expireResult.count} stale pending connections as expired for account ${account.email}`,
       );
     }
 
-    // Note: Full inbox sync via browser automation would require a headless browser
-    // (e.g. Puppeteer/Playwright) to log in and scrape LinkedIn messages.
-    // This is a placeholder for that integration.
-    this.logger.log(
-      `LinkedIn sync completed for ${account.email}: ${staleConnections.length} stale connections expired`,
-    );
+    // Attempt browser-based sync if we have session data
+    if (account.sessionData) {
+      const connResult = await this.browserService.fetchConnections(account.sessionData);
+      if (!connResult.error) {
+        let imported = 0;
+        for (const conn of connResult.connections) {
+          try {
+            const existing = await this.prisma.linkedInConnection.findFirst({
+              where: { accountId: account.id, profileUrl: conn.profileUrl },
+            });
+            if (!existing) {
+              await this.prisma.linkedInConnection.create({
+                data: {
+                  accountId: account.id,
+                  profileUrl: conn.profileUrl,
+                  name: conn.name,
+                  headline: conn.headline,
+                  company: conn.company,
+                  location: conn.location,
+                  status: 'CONNECTED',
+                  connectedAt: new Date(),
+                },
+              });
+              imported++;
+            }
+          } catch {
+            // Skip individual errors
+          }
+        }
+        this.logger.log(`Background sync imported ${imported} new connections for ${account.email}`);
+      }
+    }
+
+    this.logger.log(`LinkedIn sync completed for ${account.email}`);
   }
 
   @Process('send-outreach-email')

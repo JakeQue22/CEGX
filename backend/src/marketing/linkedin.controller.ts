@@ -20,7 +20,6 @@ import {
   UpdateLinkedInAccountDto,
   SendLinkedInMessageDto,
   ConnectLinkedInDto,
-  ImportLinkedInConnectionsDto,
 } from './dto/linkedin.dto';
 
 @ApiTags('LinkedIn Automation')
@@ -111,21 +110,10 @@ export class LinkedInController {
     return this.linkedInService.markMessageRead(id);
   }
 
-  // --- Import ---
-  @Post('accounts/:accountId/import-connections')
-  @Roles(Role.ADMIN, Role.SALES_MANAGER)
-  @ApiOperation({ summary: 'Import LinkedIn connections from CSV data (parsed client-side)' })
-  importConnections(
-    @Param('accountId') accountId: string,
-    @Body() dto: ImportLinkedInConnectionsDto,
-  ) {
-    return this.linkedInService.importConnections(accountId, dto);
-  }
-
   // --- Sync ---
   @Post('sync/:accountId')
   @Roles(Role.ADMIN, Role.SALES_MANAGER)
-  @ApiOperation({ summary: 'Trigger LinkedIn inbox sync for an account' })
+  @ApiOperation({ summary: 'Trigger LinkedIn sync for an account (connections + inbox)' })
   syncAccount(@Param('accountId') accountId: string) {
     return this.linkedInService.syncAccount(accountId);
   }
