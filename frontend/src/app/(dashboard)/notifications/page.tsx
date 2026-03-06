@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useNotifications } from '@/hooks/useNotifications';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -10,6 +11,7 @@ function formatDate(d: string) {
 }
 
 export default function NotificationsPage() {
+  const router = useRouter();
   const { notifications, isLoading, markAsRead, markAllAsRead } = useNotifications();
 
   if (isLoading) return <LoadingSpinner />;
@@ -43,7 +45,10 @@ export default function NotificationsPage() {
                 className={`px-6 py-4 flex items-start gap-4 cursor-pointer hover:bg-gray-50 transition ${
                   !n.isRead ? 'bg-blue-50/40' : ''
                 }`}
-                onClick={() => !n.isRead && markAsRead.mutate(n.id)}
+                onClick={() => {
+                  if (!n.isRead) markAsRead.mutate(n.id);
+                  if (n.link) router.push(n.link);
+                }}
               >
                 <div className={`flex-shrink-0 w-2 h-2 rounded-full mt-2 ${!n.isRead ? 'bg-blue-500' : 'bg-transparent'}`} />
                 <div className="flex-1 min-w-0">

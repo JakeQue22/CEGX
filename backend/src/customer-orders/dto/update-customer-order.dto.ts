@@ -4,8 +4,8 @@ import { IsOptional, IsEnum } from 'class-validator';
 import { CreateCustomerOrderDto } from './create-customer-order.dto';
 
 export class UpdateCustomerOrderDto extends PartialType(CreateCustomerOrderDto) {
-  @ApiPropertyOptional({ enum: ['PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED'] })
+  @ApiPropertyOptional({ enum: ['PENDING', 'APPROVED', 'PENDING_PAYMENT', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED'] })
   @IsOptional()
-  @IsEnum(['PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED'])
+  @IsEnum(['PENDING', 'APPROVED', 'PENDING_PAYMENT', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED'])
   status?: string;
 }

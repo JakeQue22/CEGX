@@ -297,6 +297,7 @@ export interface Notification {
   userId?: string;
   relatedId?: string;
   relatedType?: string;
+  link?: string;
   createdAt: string;
 }
 

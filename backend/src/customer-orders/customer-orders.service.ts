@@ -14,6 +14,18 @@ export class CustomerOrdersService {
   async create(dto: CreateCustomerOrderDto) {
     const order = await this.prisma.customerOrder.create({ data: dto });
 
+    // Look up the customer name for the notification
+    let customerName = 'a customer';
+    if (dto.customerId) {
+      const customer = await this.prisma.customer.findUnique({
+        where: { id: dto.customerId },
+        select: { companyName: true, contactName: true, email: true },
+      });
+      if (customer) {
+        customerName = customer.companyName || customer.contactName || customer.email;
+      }
+    }
+
     const admins = await this.prisma.user.findMany({
       where: { role: { in: ['ADMIN', 'SALES_MANAGER'] }, isActive: true },
     });
@@ -22,9 +34,9 @@ export class CustomerOrdersService {
       await this.notificationsService.create({
         userId: admin.id,
         title: 'New Customer Order',
-        message: `Order from customer for ${dto.quantity}x ${dto.productName}`,
+        message: `Order from ${customerName} for ${dto.quantity}x ${dto.productName}`,
         type: 'CUSTOMER_ORDER',
-        link: `/customer-orders`,
+        link: `/customer-orders/${order.id}`,
       });
     }
 

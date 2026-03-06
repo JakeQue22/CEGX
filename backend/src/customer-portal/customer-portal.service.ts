@@ -108,13 +108,14 @@ export class CustomerPortalService {
         where: { role: { in: ['ADMIN', 'SALES_MANAGER'] }, isActive: true },
       });
 
+      const customerName = customer.companyName || customer.contactName || customer.email;
       for (const admin of admins) {
         await this.notificationsService.create({
           userId: admin.id,
           title: 'New Customer Order',
-          message: `Order from customer for ${dto.quantity}x ${dto.productName}`,
+          message: `Order from ${customerName} for ${dto.quantity}x ${dto.productName}`,
           type: 'CUSTOMER_ORDER',
-          link: '/customer-orders',
+          link: `/customer-orders/${order.id}`,
         });
       }
     } catch (err) {
