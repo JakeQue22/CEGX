@@ -10,6 +10,12 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 
+  @Get()
+  @ApiOperation({ summary: 'Get combined analytics data for charts' })
+  getCombinedAnalytics() {
+    return this.analyticsService.getCombinedAnalytics();
+  }
+
   @Get('dashboard')
   @ApiOperation({ summary: 'Get dashboard summary metrics' })
   getDashboard() {

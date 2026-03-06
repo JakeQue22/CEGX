@@ -1,0 +1,52 @@
+# CEGX Nginx reverse-proxy configuration
+# Place this in /etc/nginx/sites-available/ and symlink to sites-enabled/
+#
+# Architecture:
+#   Browser → Nginx (443) → Frontend (3002) → [/api rewrites] → Backend (3003)
+#
+# The Next.js frontend already proxies /api/* requests to the backend
+# internally, so nginx only needs to point at the frontend port (3002).
+#
+# Required .env settings when using this proxy:
+#   FRONTEND_URL=https://cegx.quantumonline.co.uk
+#   CORS_ORIGIN=https://cegx.quantumonline.co.uk
+#   NEXT_PUBLIC_API_URL=/api
+
+# HTTP → HTTPS redirect
+server {
+    listen 80;
+    server_name cegx.quantumonline.co.uk;
+    return 301 https://$host$request_uri;
+}
+
+# HTTPS
+server {
+    listen 443 ssl;
+    server_name cegx.quantumonline.co.uk;
+
+    ssl_certificate     /etc/letsencrypt/live/cegx.quantumonline.co.uk/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/cegx.quantumonline.co.uk/privkey.pem;
+    include             /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam         /etc/letsencrypt/ssl-dhparams.pem;
+
+    client_max_body_size 50M;
+
+    location / {
+        # Replace with the IP/hostname of your Docker host
+        proxy_pass http://127.0.0.1:3002;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # WebSocket support (needed for hot-reload in dev; harmless in prod)
+        proxy_set_header Upgrade    $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        proxy_read_timeout  300s;
+        proxy_send_timeout  300s;
+        proxy_buffering     off;
+    }
+}

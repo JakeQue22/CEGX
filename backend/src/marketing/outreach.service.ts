@@ -12,6 +12,7 @@ import {
 @Injectable()
 export class OutreachService {
   private readonly logger = new Logger(OutreachService.name);
+  private static readonly DEFAULT_LEAD_STAGE_NAME = 'Lead';
 
   constructor(
     private readonly prisma: PrismaService,
@@ -20,7 +21,27 @@ export class OutreachService {
 
   // --- Lead Management ---
   async createLead(dto: CreateLeadDto) {
-    return this.prisma.marketingLead.create({ data: dto });
+    // Auto-assign to the default "Lead" pipeline stage if none provided
+    let pipelineStageId = dto.pipelineStageId;
+    if (!pipelineStageId) {
+      const defaultStage = await this.prisma.pipelineStage.findFirst({
+        where: { isDefault: true },
+        select: { id: true },
+      });
+      if (!defaultStage) {
+        // Fallback: look for a stage named "Lead"
+        const leadStage = await this.prisma.pipelineStage.findFirst({
+          where: { name: OutreachService.DEFAULT_LEAD_STAGE_NAME },
+          select: { id: true },
+        });
+        pipelineStageId = leadStage?.id;
+      } else {
+        pipelineStageId = defaultStage.id;
+      }
+    }
+    return this.prisma.marketingLead.create({
+      data: { ...dto, pipelineStageId },
+    });
   }
 
   async getLeads(filters: { campaignId?: string; status?: string }) {
@@ -32,6 +53,9 @@ export class OutreachService {
       where,
       include: {
         campaign: { select: { id: true, name: true } },
+        pipelineStage: { select: { id: true, name: true, color: true } },
+        product: { select: { id: true, name: true, sku: true } },
+        category: { select: { id: true, name: true } },
         _count: { select: { outreachEmails: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -43,6 +67,9 @@ export class OutreachService {
       where: { id },
       include: {
         campaign: { select: { id: true, name: true } },
+        pipelineStage: { select: { id: true, name: true, color: true } },
+        product: { select: { id: true, name: true, sku: true } },
+        category: { select: { id: true, name: true } },
         outreachEmails: { orderBy: { createdAt: 'desc' } },
       },
     });

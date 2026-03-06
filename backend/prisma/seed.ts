@@ -44,14 +44,14 @@ async function main() {
     console.log('✅ Company settings seeded');
   }
 
-  // Seed admin user (upsert so password is always reset to the known default)
+  // Seed admin user (only creates if not exists — never resets existing password)
   const adminEmail = process.env.ADMIN_EMAIL ?? 'admin@cegx.co.uk';
   const adminPassword = process.env.ADMIN_PASSWORD ?? 'Admin@123456';
   const hashedPassword = await bcrypt.hash(adminPassword, 12);
 
   await prisma.user.upsert({
     where: { email: adminEmail },
-    update: { password: hashedPassword },
+    update: {},
     create: {
       email: adminEmail,
       password: hashedPassword,

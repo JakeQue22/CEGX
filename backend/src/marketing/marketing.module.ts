@@ -4,6 +4,7 @@ import { MarketingController } from './marketing.controller';
 import { MarketingService } from './marketing.service';
 import { LinkedInController } from './linkedin.controller';
 import { LinkedInService } from './linkedin.service';
+import { LinkedInBrowserService } from './linkedin-browser.service';
 import { LeadScrapingService } from './lead-scraping.service';
 import { OutreachController } from './outreach.controller';
 import { OutreachService } from './outreach.service';
@@ -19,6 +20,7 @@ const MARKETING_QUEUE = 'marketing';
   providers: [
     MarketingService,
     LinkedInService,
+    LinkedInBrowserService,
     LeadScrapingService,
     OutreachService,
     MarketingProcessor,

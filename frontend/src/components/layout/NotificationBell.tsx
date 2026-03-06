@@ -19,6 +19,7 @@ function formatTimeAgo(dateStr: string) {
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const router = useRouter();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
 
   useEffect(() => {
@@ -71,7 +72,13 @@ export function NotificationBell() {
               latest.map((n) => (
                 <div
                   key={n.id}
-                  onClick={() => markAsRead.mutate(n.id)}
+                  onClick={() => {
+                    markAsRead.mutate(n.id);
+                    if (n.link) {
+                      router.push(n.link);
+                      setOpen(false);
+                    }
+                  }}
                   className={`px-4 py-3 border-b last:border-0 cursor-pointer hover:bg-gray-50 transition ${
                     !n.isRead ? 'bg-blue-50/50' : ''
                   }`}

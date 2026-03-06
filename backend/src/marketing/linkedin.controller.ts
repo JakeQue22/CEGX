@@ -113,7 +113,7 @@ export class LinkedInController {
   // --- Sync ---
   @Post('sync/:accountId')
   @Roles(Role.ADMIN, Role.SALES_MANAGER)
-  @ApiOperation({ summary: 'Trigger LinkedIn inbox sync for an account' })
+  @ApiOperation({ summary: 'Trigger LinkedIn sync for an account (connections + inbox)' })
   syncAccount(@Param('accountId') accountId: string) {
     return this.linkedInService.syncAccount(accountId);
   }

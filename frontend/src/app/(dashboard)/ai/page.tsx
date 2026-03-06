@@ -69,7 +69,7 @@ export default function AIAssistantPage() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">AI Assistant</h1>
-        <p className="text-gray-500 text-sm mt-1">Powered by Grok AI — Analyze data, generate outreach, and manage AI settings</p>
+        <p className="text-gray-500 text-sm mt-1">Powered by Grok AI — Analyse data, generate outreach, and manage AI settings</p>
       </div>
 
       {/* Status */}
@@ -103,7 +103,7 @@ export default function AIAssistantPage() {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               rows={3}
-              placeholder="Ask a question about your data, e.g., 'Analyze our pipeline performance this quarter' or 'What products should we focus on?'"
+              placeholder="Ask a question about your data, e.g., 'Analyse our pipeline performance this quarter' or 'What products should we focus on?'"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             />
             <textarea
@@ -119,7 +119,7 @@ export default function AIAssistantPage() {
               className="px-6 py-2.5 text-sm font-medium text-white rounded-lg hover:opacity-90 transition disabled:opacity-50"
               style={{ backgroundColor: 'var(--primary-color)' }}
             >
-              {analyze.isPending ? 'Analyzing...' : 'Analyze'}
+              {analyze.isPending ? 'Analysing...' : 'Analyse'}
             </button>
           </div>
 
@@ -132,7 +132,7 @@ export default function AIAssistantPage() {
 
           {analyze.isError && (
             <div className="bg-red-50 text-red-700 rounded-lg p-4 text-sm">
-              Failed to analyze. Make sure your Grok API key is configured in AI Settings.
+              Failed to analyse. Make sure your Grok API key is configured in AI Settings.
             </div>
           )}
         </div>
@@ -142,10 +142,11 @@ export default function AIAssistantPage() {
         <div className="space-y-4">
           <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
             <h2 className="font-semibold text-gray-900">Generate Outreach Content</h2>
+            <p className="text-sm text-gray-500">Leave &quot;Target Company&quot; blank to generate a generic message for bulk outreach. Your company name from Settings is used automatically as the sender.</p>
             <div className="grid grid-cols-2 gap-4">
               <input
                 type="text"
-                placeholder="Company Name *"
+                placeholder="Target Company (optional)"
                 value={outreachForm.companyName}
                 onChange={(e) => setOutreachForm({ ...outreachForm, companyName: e.target.value })}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
@@ -177,7 +178,7 @@ export default function AIAssistantPage() {
             />
             <button
               onClick={() => generateOutreach.mutate(outreachForm)}
-              disabled={generateOutreach.isPending || !outreachForm.companyName}
+              disabled={generateOutreach.isPending}
               className="px-6 py-2.5 text-sm font-medium text-white rounded-lg hover:opacity-90 transition disabled:opacity-50"
               style={{ backgroundColor: 'var(--primary-color)' }}
             >

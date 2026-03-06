@@ -14,6 +14,7 @@ export type NotificationType =
   | 'FOLLOW_UP_DUE'
   | 'CAMPAIGN_SENT'
   | 'CAMPAIGN_FAILED'
+  | 'CUSTOMER_ORDER'
   | 'SYSTEM';
 
 // ─── Core Entities ───────────────────────────────────────────────────────────
@@ -23,6 +24,10 @@ export interface User {
   name: string;
   email: string;
   role: Role;
+  phone?: string;
+  title?: string;
+  department?: string;
+  isActive?: boolean;
   avatarUrl?: string;
   createdAt: string;
   updatedAt: string;
@@ -31,13 +36,21 @@ export interface User {
 export interface CompanySettings {
   id: string;
   companyName: string;
+  baseDomainUrl?: string;
   logoUrl?: string;
   primaryColor: string;
   currency: string;
+  companyAddress?: string;
+  companyPhone?: string;
+  companyEmail?: string;
+  companyWebsite?: string;
+  vatNumber?: string;
+  companyRegNumber?: string;
   defaultVatPercent: number;
   defaultAdPercent: number;
   smtpHost?: string;
   smtpPort?: number;
+  smtpSecure?: boolean;
   smtpUser?: string;
   smtpPass?: string;
   smtpSenderName?: string;
@@ -45,16 +58,35 @@ export interface CompanySettings {
   notifyOnDealWon: boolean;
   notifyOnDealLost: boolean;
   notifyOnFollowUpDue: boolean;
+  // Payment / Bank Details
+  bankAccountName?: string;
+  bankSortCode?: string;
+  bankAccountNumber?: string;
+  bankIban?: string;
+  // Stripe Integration
+  stripeTestPublicKey?: string;
+  stripeTestSecretKey?: string;
+  stripeLivePublicKey?: string;
+  stripeLiveSecretKey?: string;
+  stripeMode?: string;
+  // Invoice Settings
+  invoicePrefix?: string;
+  invoiceTerms?: string;
+  invoiceNotes?: string;
+  invoiceFooter?: string;
   updatedAt: string;
 }
 
 export interface Supplier {
   id: string;
   name: string;
+  contactName?: string;
   contactEmail?: string;
   contactPhone?: string;
   country?: string;
   rating?: number;
+  salesPersonId?: string;
+  salesPerson?: { id: string; name: string; email: string };
   isActive?: boolean;
   notes?: string;
   _count?: { products: number; deals: number };
@@ -70,11 +102,70 @@ export interface ProductCategory {
   updatedAt: string;
 }
 
+export interface Courier {
+  id: string;
+  name: string;
+  contactName?: string;
+  email?: string;
+  phone?: string;
+  website?: string;
+  trackingUrl?: string;
+  isActive: boolean;
+  notes?: string;
+  pricings?: CourierPricing[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CourierPricing {
+  id: string;
+  courierId: string;
+  unitType: string;
+  label: string;
+  minQuantity: number;
+  maxQuantity?: number;
+  price: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Customer {
+  id: string;
+  companyName: string;
+  contactName?: string;
+  email: string;
+  phone?: string;
+  notes?: string;
+  categoryIds?: string[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CustomerOrder {
+  id: string;
+  customerId: string;
+  customer?: Customer;
+  productId?: string;
+  productName: string;
+  quantity: number;
+  deliveryLocation?: string;
+  courierId?: string;
+  courier?: Courier;
+  status: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface BulkPricing {
   id: string;
   productId: string;
   minQuantity: number;
   bulkCostPrice: number;
+  discountType?: string;
+  discountValue?: number;
 }
 
 export interface Product {
@@ -82,7 +173,9 @@ export interface Product {
   name: string;
   sku: string;
   description?: string;
+  imageUrl?: string;
   baseCostPrice: number;
+  retailPrice?: number;
   vatPercent?: number;
   adPercent?: number;
   categoryId?: string;
@@ -90,6 +183,7 @@ export interface Product {
   supplierId?: string;
   supplier?: Supplier;
   bulkPricings?: BulkPricing[];
+  minOrderQuantity?: number;
   isArchived: boolean;
   createdAt: string;
   updatedAt: string;
@@ -114,6 +208,8 @@ export interface Deal {
   supplier?: Supplier;
   productId?: string;
   product?: Product;
+  customerId?: string;
+  customer?: Customer;
   assignedUserId?: string;
   assignedUser?: User;
   quantity: number;
@@ -127,6 +223,9 @@ export interface Deal {
   vat: number;
   grossProfit: number;
   profitMarginPercent: number;
+  courierId?: string;
+  courier?: Courier;
+  shippingCost?: number;
   notes?: string;
   closedAt?: string;
   stageHistory?: DealStageHistory[];
@@ -175,6 +274,25 @@ export interface CampaignRecipient {
   openedAt?: string;
 }
 
+export interface EmailList {
+  id: string;
+  name: string;
+  columns: string[];
+  _count?: { entries: number };
+  entries?: EmailListEntry[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EmailListEntry {
+  id: string;
+  listId: string;
+  email: string;
+  name?: string;
+  data?: Record<string, string>;
+  createdAt: string;
+}
+
 export interface Notification {
   id: string;
   type: NotificationType;
@@ -184,6 +302,7 @@ export interface Notification {
   userId?: string;
   relatedId?: string;
   relatedType?: string;
+  link?: string;
   createdAt: string;
 }
 
@@ -245,6 +364,7 @@ export type OutreachEmailStatus = 'DRAFT' | 'QUEUED' | 'SENT' | 'DELIVERED' | 'O
 export interface LinkedInAccount {
   id: string;
   email: string;
+  password?: string;
   name?: string;
   profileUrl?: string;
   isActive: boolean;
@@ -314,7 +434,15 @@ export interface MarketingLead {
   id: string;
   campaignId?: string;
   campaign?: { id: string; name: string };
-  companyName: string;
+  pipelineStageId?: string;
+  pipelineStage?: { id: string; name: string; color?: string };
+  productId?: string;
+  product?: { id: string; name: string; sku: string };
+  categoryId?: string;
+  category?: { id: string; name: string };
+  productIds?: string[];
+  categoryIds?: string[];
+  companyName?: string;
   contactName?: string;
   contactEmail?: string;
   contactPhone?: string;
@@ -444,4 +572,72 @@ export interface SupplierMarginData {
   totalRevenue: number;
   totalGrossProfit: number;
   avgProfitMarginPercent: number;
+}
+
+// ─── CCS Framework Types ──────────────────────────────────────────────────────
+
+export type CcsFrameworkStatus = 'LIVE' | 'EXPIRED' | 'UPCOMING';
+export type CcsOpportunityStatus = 'OPEN' | 'CLOSED' | 'AWARDED' | 'CANCELLED';
+export type CcsBidStatus = 'NOT_BIDDING' | 'PREPARING' | 'SUBMITTED' | 'WON' | 'LOST';
+
+export interface CcsFramework {
+  id: string;
+  reference: string;
+  title: string;
+  description?: string;
+  category: string;
+  status: CcsFrameworkStatus;
+  startDate?: string;
+  endDate?: string;
+  websiteUrl?: string;
+  maxValue?: number;
+  benefits?: string;
+  productsServices?: string;
+  howToBuy?: string;
+  regulation?: string;
+  lots?: CcsLot[];
+  opportunities?: CcsOpportunity[];
+  _count?: { lots: number; opportunities: number };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CcsLot {
+  id: string;
+  frameworkId: string;
+  framework?: { id: string; reference: string; title: string };
+  lotNumber: string;
+  title: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CcsOpportunity {
+  id: string;
+  frameworkId?: string;
+  framework?: { id: string; reference: string; title: string; category?: string };
+  title: string;
+  description?: string;
+  buyerName?: string;
+  status: CcsOpportunityStatus;
+  publishedDate?: string;
+  closingDate?: string;
+  value?: number;
+  region?: string;
+  category?: string;
+  noticeUrl?: string;
+  notes?: string;
+  bidStatus: CcsBidStatus;
+  bidDeadline?: string;
+  bidValue?: number;
+  assignedUserId?: string;
+  assignedUser?: { id: string; name: string; email?: string };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CcsStats {
+  frameworks: { total: number; live: number; expired: number; upcoming: number };
+  opportunities: { total: number; open: number; bidding: number };
 }

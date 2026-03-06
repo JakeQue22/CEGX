@@ -18,11 +18,15 @@ export class SuppliersService {
             OR: [
               { name: { contains: search, mode: 'insensitive' } },
               { contactEmail: { contains: search, mode: 'insensitive' } },
+              { contactName: { contains: search, mode: 'insensitive' } },
               { country: { contains: search, mode: 'insensitive' } },
             ],
           }
         : undefined,
-      include: { _count: { select: { products: true, deals: true } } },
+      include: {
+        _count: { select: { products: true, deals: true } },
+        salesPerson: { select: { id: true, name: true, email: true } },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -32,6 +36,7 @@ export class SuppliersService {
       where: { id },
       include: {
         _count: { select: { products: true, deals: true } },
+        salesPerson: { select: { id: true, name: true, email: true } },
       },
     });
     if (!supplier) throw new NotFoundException(`Supplier ${id} not found`);

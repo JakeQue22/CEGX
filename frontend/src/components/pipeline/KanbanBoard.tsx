@@ -1,12 +1,15 @@
 'use client';
 
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { PipelineStage, Deal } from '@/types';
+import { PipelineStage, Deal, MarketingLead } from '@/types';
 import { DealCard } from './DealCard';
+import { LeadCard } from './LeadCard';
+
+export type PipelineItem = { type: 'deal'; data: Deal } | { type: 'lead'; data: MarketingLead };
 
 interface KanbanBoardProps {
   stages: PipelineStage[];
-  dealsByStage: Record<string, Deal[]>;
+  itemsByStage: Record<string, PipelineItem[]>;
   onDragEnd: (result: DropResult) => void;
 }
 
@@ -19,12 +22,12 @@ const stageColors: Record<number, string> = {
   5: '#06b6d4',
 };
 
-export function KanbanBoard({ stages, dealsByStage, onDragEnd }: KanbanBoardProps) {
+export function KanbanBoard({ stages, itemsByStage, onDragEnd }: KanbanBoardProps) {
   return (
     <DragDropContext onDragEnd={onDragEnd}>
       <div className="flex gap-4 overflow-x-auto pb-4 min-h-[calc(100vh-200px)]">
         {stages.map((stage, idx) => {
-          const deals = dealsByStage[stage.id] ?? [];
+          const items = itemsByStage[stage.id] ?? [];
           const color = stage.color || stageColors[idx % 6] || '#6b7280';
 
           return (
@@ -39,7 +42,7 @@ export function KanbanBoard({ stages, dealsByStage, onDragEnd }: KanbanBoardProp
                   <h3 className="text-sm font-semibold text-gray-800">{stage.name}</h3>
                 </div>
                 <span className="text-xs font-medium text-gray-500 bg-white rounded-full px-2 py-0.5">
-                  {deals.length}
+                  {items.length}
                 </span>
               </div>
 
@@ -53,23 +56,30 @@ export function KanbanBoard({ stages, dealsByStage, onDragEnd }: KanbanBoardProp
                       snapshot.isDraggingOver ? 'bg-blue-50 border-2 border-blue-200 border-dashed' : 'bg-gray-100/60'
                     }`}
                   >
-                    {deals.map((deal, index) => (
-                      <Draggable key={deal.id} draggableId={deal.id} index={index}>
-                        {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className={snapshot.isDragging ? 'rotate-1 scale-105' : ''}
-                          >
-                            <DealCard deal={deal} />
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
+                    {items.map((item, index) => {
+                      const id = item.type === 'deal' ? item.data.id : `lead-${item.data.id}`;
+                      return (
+                        <Draggable key={id} draggableId={id} index={index}>
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              className={snapshot.isDragging ? 'rotate-1 scale-105' : ''}
+                            >
+                              {item.type === 'deal' ? (
+                                <DealCard deal={item.data} />
+                              ) : (
+                                <LeadCard lead={item.data} />
+                              )}
+                            </div>
+                          )}
+                        </Draggable>
+                      );
+                    })}
                     {provided.placeholder}
-                    {deals.length === 0 && !snapshot.isDraggingOver && (
-                      <p className="text-center text-xs text-gray-400 py-6">Drop deals here</p>
+                    {items.length === 0 && !snapshot.isDraggingOver && (
+                      <p className="text-center text-xs text-gray-400 py-6">Drop items here</p>
                     )}
                   </div>
                 )}

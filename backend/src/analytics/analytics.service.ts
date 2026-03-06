@@ -5,6 +5,87 @@ import { PrismaService } from '../common/prisma/prisma.service';
 export class AnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async getCombinedAnalytics() {
+    // Get all WON deals for computing analytics
+    const wonDeals = await this.prisma.deal.findMany({
+      where: { status: 'WON' },
+      select: {
+        revenue: true,
+        grossProfit: true,
+        adSpend: true,
+        vat: true,
+        profitMarginPercent: true,
+        closedAt: true,
+        supplierId: true,
+        supplier: { select: { id: true, name: true } },
+        productId: true,
+        product: { select: { id: true, name: true } },
+      },
+      orderBy: { closedAt: 'asc' },
+    });
+
+    // Revenue over time
+    const revenueMap = new Map<string, number>();
+    const profitMap = new Map<string, number>();
+    const adSpendMap = new Map<string, number>();
+    const vatMap = new Map<string, number>();
+
+    for (const d of wonDeals) {
+      if (!d.closedAt) continue;
+      const month = d.closedAt.toISOString().slice(0, 7);
+      revenueMap.set(month, (revenueMap.get(month) ?? 0) + Number(d.revenue));
+      profitMap.set(month, (profitMap.get(month) ?? 0) + Number(d.grossProfit));
+      adSpendMap.set(month, (adSpendMap.get(month) ?? 0) + Number(d.adSpend));
+      vatMap.set(month, (vatMap.get(month) ?? 0) + Number(d.vat));
+    }
+
+    const months = [...new Set([...revenueMap.keys(), ...profitMap.keys(), ...adSpendMap.keys(), ...vatMap.keys()])].sort();
+
+    const revenueOverTime = months.map((month) => ({ month, revenue: revenueMap.get(month) ?? 0 }));
+    const profitOverTime = months.map((month) => ({ month, profit: profitMap.get(month) ?? 0 }));
+    const adSpendOverTime = months.map((month) => ({ month, adSpend: adSpendMap.get(month) ?? 0 }));
+    const vatLiabilityByMonth = months.map((month) => ({ month, vat: vatMap.get(month) ?? 0 }));
+    const vatLiabilityTotal = wonDeals.reduce((sum, d) => sum + Number(d.vat), 0);
+
+    // Margin by supplier
+    const supplierMap = new Map<string, { margin: number; count: number }>();
+    for (const d of wonDeals) {
+      if (!d.supplier) continue;
+      const entry = supplierMap.get(d.supplier.name) ?? { margin: 0, count: 0 };
+      entry.margin += Number(d.profitMarginPercent);
+      entry.count += 1;
+      supplierMap.set(d.supplier.name, entry);
+    }
+    const marginBySupplier = [...supplierMap.entries()].map(([supplier, { margin, count }]) => ({
+      supplier,
+      margin: parseFloat((margin / count).toFixed(2)),
+    }));
+
+    // Margin by product
+    const productMap = new Map<string, { margin: number; count: number }>();
+    for (const d of wonDeals) {
+      if (!d.product) continue;
+      const entry = productMap.get(d.product.name) ?? { margin: 0, count: 0 };
+      entry.margin += Number(d.profitMarginPercent);
+      entry.count += 1;
+      productMap.set(d.product.name, entry);
+    }
+    const marginByProduct = [...productMap.entries()].map(([product, { margin, count }]) => ({
+      product,
+      margin: parseFloat((margin / count).toFixed(2)),
+    }));
+
+    return {
+      revenueOverTime,
+      profitOverTime,
+      adSpendOverTime,
+      marginBySupplier,
+      marginByProduct,
+      vatLiabilityTotal,
+      vatLiabilityByMonth,
+    };
+  }
+
   async getDashboard() {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);

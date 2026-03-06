@@ -1,5 +1,11 @@
 version: '3.9'
 
+# ⚠️  DATABASE PERSISTENCE: Data lives in the `postgres_data` named volume.
+# - `docker-compose build --no-cache` → SAFE (only rebuilds images)
+# - `docker-compose down` → SAFE (stops containers, keeps volumes)
+# - `docker-compose down -v` → DESTROYS DATA (removes named volumes!)
+# To safely rebuild: docker-compose build --no-cache && docker-compose up -d
+
 networks:
   cegx_net:
     driver: bridge
@@ -60,7 +66,7 @@ services:
       REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET:-changeme-jwt-secret-min-32-chars!!}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-changeme-refresh-secret-min-32chars}
-      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-30d}
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
       GROK_API_KEY: ${GROK_API_KEY:-}
       GROK_MODEL: ${GROK_MODEL:-grok-3}

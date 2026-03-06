@@ -4,6 +4,7 @@ import {
   IsNumber,
   IsBoolean,
   IsInt,
+  IsIn,
   Min,
   Max,
 } from 'class-validator';
@@ -14,6 +15,11 @@ export class UpdateSettingsDto {
   @IsOptional()
   @IsString()
   companyName?: string;
+
+  @ApiPropertyOptional({ description: 'Base domain URL for the CRM, e.g. https://cegx.quantumonline.co.uk' })
+  @IsOptional()
+  @IsString()
+  baseDomainUrl?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -29,6 +35,36 @@ export class UpdateSettingsDto {
   @IsOptional()
   @IsString()
   currency?: string;
+
+  @ApiPropertyOptional({ description: 'Company address for invoices' })
+  @IsOptional()
+  @IsString()
+  companyAddress?: string;
+
+  @ApiPropertyOptional({ description: 'Company phone number' })
+  @IsOptional()
+  @IsString()
+  companyPhone?: string;
+
+  @ApiPropertyOptional({ description: 'Company email address' })
+  @IsOptional()
+  @IsString()
+  companyEmail?: string;
+
+  @ApiPropertyOptional({ description: 'Company website' })
+  @IsOptional()
+  @IsString()
+  companyWebsite?: string;
+
+  @ApiPropertyOptional({ description: 'VAT registration number' })
+  @IsOptional()
+  @IsString()
+  vatNumber?: string;
+
+  @ApiPropertyOptional({ description: 'Company registration number' })
+  @IsOptional()
+  @IsString()
+  companyRegNumber?: string;
 
   @ApiPropertyOptional({ minimum: 0, maximum: 100 })
   @IsOptional()
@@ -59,6 +95,11 @@ export class UpdateSettingsDto {
   @IsInt()
   smtpPort?: number;
 
+  @ApiPropertyOptional({ description: 'Use SSL/TLS for SMTP connection' })
+  @IsOptional()
+  @IsBoolean()
+  smtpSecure?: boolean;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
@@ -88,4 +129,72 @@ export class UpdateSettingsDto {
   @IsOptional()
   @IsBoolean()
   notifyOnFollowUpDue?: boolean;
+
+  // Payment / Bank Details
+  @ApiPropertyOptional({ description: 'Bank account holder name' })
+  @IsOptional()
+  @IsString()
+  bankAccountName?: string;
+
+  @ApiPropertyOptional({ description: 'Bank sort code (e.g. 12-34-56)' })
+  @IsOptional()
+  @IsString()
+  bankSortCode?: string;
+
+  @ApiPropertyOptional({ description: 'Bank account number' })
+  @IsOptional()
+  @IsString()
+  bankAccountNumber?: string;
+
+  @ApiPropertyOptional({ description: 'IBAN for international transfers' })
+  @IsOptional()
+  @IsString()
+  bankIban?: string;
+
+  // Stripe Integration
+  @ApiPropertyOptional({ description: 'Stripe test publishable key' })
+  @IsOptional()
+  @IsString()
+  stripeTestPublicKey?: string;
+
+  @ApiPropertyOptional({ description: 'Stripe test secret key' })
+  @IsOptional()
+  @IsString()
+  stripeTestSecretKey?: string;
+
+  @ApiPropertyOptional({ description: 'Stripe live publishable key' })
+  @IsOptional()
+  @IsString()
+  stripeLivePublicKey?: string;
+
+  @ApiPropertyOptional({ description: 'Stripe live secret key' })
+  @IsOptional()
+  @IsString()
+  stripeLiveSecretKey?: string;
+
+  @ApiPropertyOptional({ description: 'Stripe mode: "test" or "live"' })
+  @IsOptional()
+  @IsIn(['test', 'live'])
+  stripeMode?: string;
+
+  // Invoice Settings
+  @ApiPropertyOptional({ description: 'Invoice number prefix (e.g. INV)' })
+  @IsOptional()
+  @IsString()
+  invoicePrefix?: string;
+
+  @ApiPropertyOptional({ description: 'Default invoice payment terms' })
+  @IsOptional()
+  @IsString()
+  invoiceTerms?: string;
+
+  @ApiPropertyOptional({ description: 'Default invoice notes (shown on every invoice)' })
+  @IsOptional()
+  @IsString()
+  invoiceNotes?: string;
+
+  @ApiPropertyOptional({ description: 'Invoice footer text' })
+  @IsOptional()
+  @IsString()
+  invoiceFooter?: string;
 }

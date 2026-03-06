@@ -7,6 +7,8 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { SettingsModule } from './settings/settings.module';
 import { SuppliersModule } from './suppliers/suppliers.module';
+import { CustomersModule } from './customers/customers.module';
+import { CouriersModule } from './couriers/couriers.module';
 import { ProductsModule } from './products/products.module';
 import { CategoriesModule } from './categories/categories.module';
 import { PipelineModule } from './pipeline/pipeline.module';
@@ -21,6 +23,10 @@ import { AutomationsModule } from './automations/automations.module';
 import { HealthModule } from './health/health.module';
 import { MarketingModule } from './marketing/marketing.module';
 import { GrokModule } from './grok/grok.module';
+import { CustomerOrdersModule } from './customer-orders/customer-orders.module';
+import { CustomerPortalModule } from './customer-portal/customer-portal.module';
+import { CcsModule } from './ccs/ccs.module';
+import { EmailListsModule } from './email-lists/email-lists.module';
 
 @Module({
   imports: [
@@ -46,6 +52,8 @@ import { GrokModule } from './grok/grok.module';
     UsersModule,
     SettingsModule,
     SuppliersModule,
+    CustomersModule,
+    CouriersModule,
     ProductsModule,
     CategoriesModule,
     PipelineModule,
@@ -60,6 +68,10 @@ import { GrokModule } from './grok/grok.module';
     HealthModule,
     MarketingModule,
     GrokModule,
+    CustomerOrdersModule,
+    CustomerPortalModule,
+    CcsModule,
+    EmailListsModule,
   ],
 })
 export class AppModule {}

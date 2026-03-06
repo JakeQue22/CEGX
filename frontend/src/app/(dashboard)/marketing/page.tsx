@@ -101,6 +101,18 @@ export default function MarketingPage() {
     { href: '/ai', label: 'AI Assistant', icon: '🤖', desc: 'AI-powered sourcing' },
   ];
 
+  // Procurement routes to market
+  const procurementRoutes = [
+    { title: 'Direct Supplier Outreach', desc: 'Contact manufacturers and distributors directly via email and LinkedIn campaigns for best pricing', status: 'active', icon: '📧', metric: `${stats?.emailsSent ?? 0} emails sent`, href: '/marketing/campaigns' },
+    { title: 'Trade Shows & Events', desc: 'Find and track upcoming trade shows, exhibitions, and procurement events in your industry', status: 'planned', icon: '🎪', metric: 'Track opportunities', href: '/ccs/opportunities' },
+    { title: 'Online Marketplaces', desc: 'Monitor pricing on Alibaba, TradeIndia, Made-in-China, and other B2B marketplaces', status: 'active', icon: '🌐', metric: 'Compare prices', href: '/products' },
+    { title: 'Referral Network', desc: 'Leverage existing supplier relationships and industry contacts for introductions', status: 'active', icon: '🤝', metric: `${overview.activeSuppliers} suppliers`, href: '/suppliers' },
+    { title: 'Industry Databases', desc: 'Access Kompass, ThomasNet, and industry-specific directories for supplier discovery', status: 'planned', icon: '📚', metric: 'Expand reach', href: '/ccs/frameworks' },
+    { title: 'Social Selling', desc: 'Use LinkedIn Sales Navigator and social media for B2B prospecting and relationship building', status: 'active', icon: '📱', metric: `${overview.totalLeads} leads`, href: '/marketing/linkedin' },
+    { title: 'Tender & RFQ Management', desc: 'Create and manage requests for quotation to compare supplier bids systematically', status: 'planned', icon: '📋', metric: 'Get competitive bids', href: '/ccs/opportunities' },
+    { title: 'AI-Powered Sourcing', desc: 'Use AI to identify optimal suppliers, predict pricing trends, and automate outreach', status: 'active', icon: '🤖', metric: 'Smart matching', href: '/ai' },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -164,6 +176,73 @@ export default function MarketingPage() {
             <span className="text-xs text-gray-400">{action.desc}</span>
           </Link>
         ))}
+      </div>
+
+      {/* Procurement Routes to Market */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <SectionHeader title="Routes to Market & Procurement Channels" />
+        <p className="text-sm text-gray-500 mb-4">Active sourcing channels and strategies to find the best suppliers and prices</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {procurementRoutes.map((route) => (
+            <Link key={route.title} href={route.href} className="relative p-4 rounded-lg border border-gray-200 hover:border-blue-200 hover:shadow-sm transition group cursor-pointer">
+              <div className="flex items-start gap-3">
+                <span className="text-xl flex-shrink-0">{route.icon}</span>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-semibold text-gray-900 truncate">{route.title}</h4>
+                    <span className={`flex-shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                      route.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                    }`}>
+                      {route.status}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{route.desc}</p>
+                  <p className="text-xs font-medium text-blue-600 mt-1">{route.metric}</p>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Sourcing Effectiveness Summary */}
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-100 p-6">
+        <h2 className="text-base font-semibold text-gray-900 mb-4">Sourcing Effectiveness Summary</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <p className="text-xs text-gray-500 mb-1">Cost Savings Potential</p>
+            <p className="text-lg font-bold text-green-700">
+              {/* Estimate: 1.5x win rate as cost savings potential, capped at 35% industry benchmark */}
+              {overview.winRate > 0 ? `${Math.min(overview.winRate * 1.5, 35).toFixed(0)}%` : '—'}
+            </p>
+            <p className="text-xs text-gray-400">vs single-source buying</p>
+          </div>
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <p className="text-xs text-gray-500 mb-1">Supplier Diversity</p>
+            <p className="text-lg font-bold text-blue-700">{overview.activeSuppliers}</p>
+            <p className="text-xs text-gray-400">active suppliers</p>
+          </div>
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <p className="text-xs text-gray-500 mb-1">Lead Conversion</p>
+            <p className="text-lg font-bold text-purple-700">
+              {(() => {
+                const newCount = sortedFunnel.find(f => f.status === 'NEW')?.count ?? 0;
+                const converted = sortedFunnel.find(f => f.status === 'CONVERTED')?.count ?? 0;
+                return newCount > 0 ? `${Math.round((converted / newCount) * 100)}%` : '—';
+              })()}
+            </p>
+            <p className="text-xs text-gray-400">leads → converted</p>
+          </div>
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <p className="text-xs text-gray-500 mb-1">Avg Response Rate</p>
+            <p className="text-lg font-bold text-orange-700">
+              {outreach.total && outreach.total > 0
+                ? `${Math.round(((outreach.REPLIED ?? 0) / outreach.total) * 100)}%`
+                : '—'}
+            </p>
+            <p className="text-xs text-gray-400">outreach emails</p>
+          </div>
+        </div>
       </div>
 
       {/* Lead Conversion Funnel + Category Demand */}

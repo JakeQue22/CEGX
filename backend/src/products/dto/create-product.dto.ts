@@ -7,6 +7,7 @@ import {
   ValidateNested,
   Min,
   IsInt,
+  IsEnum,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -21,6 +22,17 @@ export class BulkPricingDto {
   @IsNumber()
   @Min(0)
   bulkCostPrice: number;
+
+  @ApiPropertyOptional({ enum: ['FIXED_PRICE', 'PERCENTAGE_OFF', 'FIXED_AMOUNT_OFF'], default: 'FIXED_PRICE' })
+  @IsOptional()
+  @IsEnum(['FIXED_PRICE', 'PERCENTAGE_OFF', 'FIXED_AMOUNT_OFF'])
+  discountType?: string;
+
+  @ApiPropertyOptional({ default: 0 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  discountValue?: number;
 }
 
 export class CreateProductDto {
@@ -37,6 +49,11 @@ export class CreateProductDto {
   @IsString()
   description?: string;
 
+  @ApiPropertyOptional({ description: 'Product image URL for display in customer portal' })
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
@@ -52,6 +69,12 @@ export class CreateProductDto {
   @Min(0)
   baseCostPrice: number;
 
+  @ApiPropertyOptional({ description: 'Retail/selling price shown to customers', minimum: 0 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  retailPrice?: number;
+
   @ApiPropertyOptional({ default: 20, minimum: 0, maximum: 100 })
   @IsOptional()
   @IsNumber()
@@ -63,6 +86,12 @@ export class CreateProductDto {
   @IsNumber()
   @Min(0)
   adPercent?: number;
+
+  @ApiPropertyOptional({ default: 1, minimum: 1 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  minOrderQuantity?: number;
 
   @ApiPropertyOptional({ type: [BulkPricingDto] })
   @IsOptional()

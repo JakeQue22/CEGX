@@ -12,7 +12,7 @@ export class PipelineService {
 
   async findAll() {
     return this.prisma.pipelineStage.findMany({
-      include: { _count: { select: { deals: true } } },
+      include: { _count: { select: { deals: true, leads: true } } },
       orderBy: { order: 'asc' },
     });
   }
@@ -20,7 +20,7 @@ export class PipelineService {
   async findOne(id: string) {
     const stage = await this.prisma.pipelineStage.findUnique({
       where: { id },
-      include: { _count: { select: { deals: true } } },
+      include: { _count: { select: { deals: true, leads: true } } },
     });
     if (!stage) throw new NotFoundException(`Stage ${id} not found`);
     return stage;

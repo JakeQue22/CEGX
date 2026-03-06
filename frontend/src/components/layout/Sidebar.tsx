@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
+import { useQuery } from '@tanstack/react-query';
+import axiosInstance from '@/lib/axios';
 import { useSettingsStore } from '@/store/settingsStore';
 
 const navItems = [
@@ -61,11 +63,56 @@ const navItems = [
     ),
   },
   {
+    href: '/couriers',
+    label: 'Couriers',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+      </svg>
+    ),
+  },
+  {
+    href: '/customers',
+    label: 'Customers',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+      </svg>
+    ),
+  },
+  {
+    href: '/customer-orders',
+    label: 'Customer Orders',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+      </svg>
+    ),
+  },
+  {
+    href: '/marketing/leads',
+    label: 'Leads',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+      </svg>
+    ),
+  },
+  {
     href: '/campaigns',
     label: 'Campaigns',
     icon: (
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+    ),
+  },
+  {
+    href: '/email-lists',
+    label: 'Email Lists',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
       </svg>
     ),
   },
@@ -97,6 +144,24 @@ const navItems = [
     ),
   },
   {
+    href: '/ccs',
+    label: 'CCS Frameworks',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+      </svg>
+    ),
+  },
+  {
+    href: '/users',
+    label: 'Users',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+      </svg>
+    ),
+  },
+  {
     href: '/settings',
     label: 'Settings',
     icon: (
@@ -111,6 +176,12 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const { settings } = useSettingsStore();
+
+  const { data: activeOrderCount } = useQuery<{ count: number }>({
+    queryKey: ['customer-orders-active-count'],
+    queryFn: () => axiosInstance.get('/customer-orders/stats/active-count').then(r => r.data),
+    refetchInterval: 60000,
+  });
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 w-64 bg-[#1e293b] flex flex-col">
@@ -136,7 +207,11 @@ export function Sidebar() {
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto scrollbar-thin">
         {navItems.map((item) => {
-          const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+          const isExactMatch = pathname === item.href;
+          const isChildMatch = item.href !== '/dashboard' && pathname.startsWith(item.href + '/');
+          // Prevent /marketing from highlighting when on /marketing/leads or /marketing/linkedin
+          const isOverriddenByChild = item.href === '/marketing' && (pathname.startsWith('/marketing/leads') || pathname.startsWith('/marketing/linkedin'));
+          const isActive = isExactMatch || (isChildMatch && !isOverriddenByChild);
           return (
             <Link
               key={item.href}
@@ -149,6 +224,11 @@ export function Sidebar() {
             >
               <span className={isActive ? 'text-blue-400' : 'text-slate-500'}>{item.icon}</span>
               {item.label}
+              {item.href === '/customer-orders' && activeOrderCount?.count ? (
+                <span className="ml-auto bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
+                  {activeOrderCount.count}
+                </span>
+              ) : null}
             </Link>
           );
         })}

@@ -22,7 +22,7 @@ export class EmailService {
       return nodemailer.createTransport({
         host: settings.smtpHost,
         port: settings.smtpPort ?? 587,
-        secure: (settings.smtpPort ?? 587) === 465,
+        secure: settings.smtpSecure ?? (settings.smtpPort ?? 587) === 465,
         auth: {
           user: settings.smtpUser,
           pass: settings.smtpPass,

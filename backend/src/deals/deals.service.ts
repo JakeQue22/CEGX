@@ -76,7 +76,7 @@ export class DealsService {
   }
 
   async create(dto: CreateDealDto, userId: string) {
-    const { quantity = 1, salePrice, productId, stageId, ...rest } = dto;
+    const { quantity = 1, salePrice, productId, stageId, shippingCost = 0, ...rest } = dto;
 
     // Validate stage exists
     const stage = await this.prisma.pipelineStage.findUnique({ where: { id: stageId } });
@@ -92,6 +92,7 @@ export class DealsService {
           stageId,
           quantity,
           salePrice,
+          shippingCost,
           ...financials,
           assignedUserId: rest.assignedUserId ?? userId,
         },
@@ -99,6 +100,8 @@ export class DealsService {
           stage: true,
           supplier: true,
           product: true,
+          customer: { select: { id: true, companyName: true, contactName: true, email: true } },
+          courier: true,
           assignedUser: { select: { id: true, name: true, email: true } },
         },
       });
@@ -151,6 +154,8 @@ export class DealsService {
         stage: true,
         supplier: true,
         product: true,
+        customer: { select: { id: true, companyName: true, contactName: true, email: true } },
+        courier: true,
         assignedUser: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -164,6 +169,8 @@ export class DealsService {
         stage: true,
         supplier: true,
         product: { include: { bulkPricings: true } },
+        customer: { select: { id: true, companyName: true, contactName: true, email: true } },
+        courier: true,
         assignedUser: { select: { id: true, name: true, email: true } },
         followUps: { where: { isCompleted: false }, orderBy: { dueAt: 'asc' } },
       },
@@ -199,6 +206,8 @@ export class DealsService {
         stage: true,
         supplier: true,
         product: true,
+        customer: { select: { id: true, companyName: true, contactName: true, email: true } },
+        courier: true,
         assignedUser: { select: { id: true, name: true } },
       },
     });
@@ -237,6 +246,8 @@ export class DealsService {
           stage: true,
           supplier: true,
           product: true,
+          customer: { select: { id: true, companyName: true, contactName: true, email: true } },
+          courier: true,
           assignedUser: { select: { id: true, name: true } },
         },
       });

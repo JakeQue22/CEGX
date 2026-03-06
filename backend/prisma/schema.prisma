@@ -18,14 +18,17 @@ enum Role {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String
-  role      Role     @default(VIEWER)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  email      String   @unique
+  password   String
+  name       String
+  phone      String?
+  title      String?
+  department String?
+  role       Role     @default(VIEWER)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   deals            Deal[]
   notifications    Notification[]
@@ -34,6 +37,8 @@ model User {
   emailCampaigns   EmailCampaign[]
   dealStageHistory DealStageHistory[]
   marketingCampaigns MarketingCampaign[]
+  suppliersAsSalesPerson Supplier[] @relation("SalesPerson")
+  ccsOpportunities CcsOpportunity[] @relation("CcsOpportunityAssignedUser")
 
   @@map("users")
 }
@@ -41,20 +46,48 @@ model User {
 model CompanySettings {
   id                   String   @id @default(cuid())
   companyName          String   @default("CEGX")
+  baseDomainUrl        String?
   logoUrl              String?
   primaryColor         String   @default("#2563EB")
   currency             String   @default("GBP")
+  companyAddress       String?
+  companyPhone         String?
+  companyEmail         String?
+  companyWebsite       String?
+  vatNumber            String?
+  companyRegNumber     String?
   defaultVatPercent    Decimal  @default(20) @db.Decimal(5, 2)
   defaultAdPercent     Decimal  @default(0) @db.Decimal(5, 2)
   smtpSenderName       String   @default("CEGX CRM") @map("emailSenderName")
   smtpHost             String?
   smtpPort             Int?
+  smtpSecure           Boolean  @default(false)
   smtpUser             String?
   smtpPass             String?
   notifyOnDealCreated  Boolean  @default(true)
   notifyOnDealWon      Boolean  @default(true)
   notifyOnDealLost     Boolean  @default(true)
   notifyOnFollowUpDue  Boolean  @default(true)
+
+  // Payment / Bank Details
+  bankAccountName      String?
+  bankSortCode         String?
+  bankAccountNumber    String?
+  bankIban             String?
+
+  // Stripe Integration
+  stripeTestPublicKey  String?
+  stripeTestSecretKey  String?
+  stripeLivePublicKey  String?
+  stripeLiveSecretKey  String?
+  stripeMode           String   @default("test") // "test" or "live"
+
+  // Invoice Settings
+  invoicePrefix        String   @default("INV")
+  invoiceTerms         String?  @db.Text @default("Payment is due within 30 days of the invoice date. Please quote the invoice number when making payment.")
+  invoiceNotes         String?  @db.Text
+  invoiceFooter        String?  @db.Text
+
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
@@ -62,16 +95,19 @@ model CompanySettings {
 }
 
 model Supplier {
-  id           String   @id @default(cuid())
-  name         String
-  contactEmail String?
-  contactPhone String?
-  country      String?
-  rating       Decimal? @db.Decimal(3, 1)
-  isActive     Boolean  @default(true)
-  notes        String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String   @id @default(cuid())
+  name           String
+  contactName    String?
+  contactEmail   String?
+  contactPhone   String?
+  country        String?
+  rating         Decimal? @db.Decimal(3, 1)
+  isActive       Boolean  @default(true)
+  notes          String?
+  salesPersonId  String?
+  salesPerson    User?    @relation("SalesPerson", fields: [salesPersonId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   products  Product[]
   deals     Deal[]
@@ -88,28 +124,33 @@ model ProductCategory {
   updatedAt   DateTime @updatedAt
 
   products Product[]
+  leads    MarketingLead[]
 
   @@map("product_categories")
 }
 
 model Product {
-  id            String          @id @default(cuid())
-  sku           String          @unique
-  name          String
-  description   String?
-  categoryId    String?
-  category      ProductCategory? @relation(fields: [categoryId], references: [id])
-  supplierId    String?
-  supplier      Supplier?        @relation(fields: [supplierId], references: [id])
-  baseCostPrice Decimal         @db.Decimal(12, 2)
-  vatPercent    Decimal         @default(20) @db.Decimal(5, 2)
-  adPercent     Decimal         @default(0) @db.Decimal(5, 2)
-  isArchived    Boolean         @default(false)
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  id              String          @id @default(cuid())
+  sku             String          @unique
+  name            String
+  description     String?
+  imageUrl        String?
+  categoryId      String?
+  category        ProductCategory? @relation(fields: [categoryId], references: [id])
+  supplierId      String?
+  supplier        Supplier?        @relation(fields: [supplierId], references: [id])
+  baseCostPrice   Decimal         @db.Decimal(12, 2)
+  retailPrice     Decimal?        @db.Decimal(12, 2)
+  vatPercent      Decimal         @default(20) @db.Decimal(5, 2)
+  adPercent       Decimal         @default(0) @db.Decimal(5, 2)
+  minOrderQuantity Int            @default(1)
+  isArchived      Boolean         @default(false)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
   bulkPricings BulkPricing[]
   deals        Deal[]
+  leads        MarketingLead[]
 
   @@map("products")
 }
@@ -120,6 +161,8 @@ model BulkPricing {
   product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   minQuantity   Int
   bulkCostPrice Decimal  @db.Decimal(12, 2)
+  discountType  String   @default("FIXED_PRICE")
+  discountValue Decimal  @default(0) @db.Decimal(12, 2)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -136,6 +179,7 @@ model PipelineStage {
   updatedAt DateTime @updatedAt
 
   deals              Deal[]
+  leads              MarketingLead[]
   historyFrom        DealStageHistory[] @relation("FromStage")
   historyTo          DealStageHistory[] @relation("ToStage")
 
@@ -149,12 +193,17 @@ model Deal {
   supplier             Supplier?     @relation(fields: [supplierId], references: [id])
   productId            String?
   product              Product?      @relation(fields: [productId], references: [id])
+  customerId           String?
+  customer             Customer?     @relation(fields: [customerId], references: [id])
   assignedUserId       String?
   assignedUser         User?         @relation(fields: [assignedUserId], references: [id])
   stageId              String
   stage                PipelineStage @relation(fields: [stageId], references: [id])
+  courierId            String?
+  courier              Courier?      @relation(fields: [courierId], references: [id])
   quantity             Int           @default(1)
   salePrice            Decimal       @db.Decimal(12, 2)
+  shippingCost         Decimal       @default(0) @db.Decimal(12, 2)
   costPriceSnapshot    Decimal       @default(0) @db.Decimal(12, 2)
   adPercentSnapshot    Decimal       @default(0) @db.Decimal(5, 2)
   vatPercentSnapshot   Decimal       @default(20) @db.Decimal(5, 2)
@@ -224,6 +273,30 @@ model CampaignRecipient {
   @@map("campaign_recipients")
 }
 
+model EmailList {
+  id        String   @id @default(cuid())
+  name      String
+  columns   Json     // Array of column names from the uploaded CSV
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  entries EmailListEntry[]
+
+  @@map("email_lists")
+}
+
+model EmailListEntry {
+  id        String   @id @default(cuid())
+  listId    String
+  list      EmailList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  email     String
+  name      String?
+  data      Json?    // Full row data as key-value pairs from CSV columns
+  createdAt DateTime @default(now())
+
+  @@map("email_list_entries")
+}
+
 model Notification {
   id        String   @id @default(cuid())
   userId    String
@@ -269,12 +342,99 @@ model ActivityLog {
 }
 
 // =============================================================================
+// Couriers
+// =============================================================================
+
+model Courier {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  contactName String?
+  email       String?
+  phone       String?
+  website     String?
+  trackingUrl String?
+  isActive    Boolean  @default(true)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  deals          Deal[]
+  customerOrders CustomerOrder[]
+  pricings       CourierPricing[]
+
+  @@map("couriers")
+}
+
+model CourierPricing {
+  id          String   @id @default(cuid())
+  courierId   String
+  courier     Courier  @relation(fields: [courierId], references: [id], onDelete: Cascade)
+  unitType    String   // e.g. "PALLET", "CASE", "BOX", "ITEM", "TRUCK_LOAD"
+  label       String   // e.g. "Full Truck Load", "Per Pallet", "Per Case"
+  minQuantity Int      @default(1)
+  maxQuantity Int?
+  price       Decimal  @db.Decimal(12, 2)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("courier_pricings")
+}
+
+// =============================================================================
+// Customers & Customer Orders
+// =============================================================================
+
+model Customer {
+  id           String   @id @default(cuid())
+  companyName  String
+  contactName  String?
+  email        String   @unique
+  password     String
+  phone        String?
+  notes        String?  @db.Text
+  categoryIds  Json?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  orders CustomerOrder[]
+  deals  Deal[]
+
+  @@map("customers")
+}
+
+model CustomerOrder {
+  id               String   @id @default(cuid())
+  customerId       String
+  customer         Customer @relation(fields: [customerId], references: [id])
+  productId        String?
+  productName      String
+  quantity         Int
+  deliveryLocation String?
+  deliveryStreet   String?
+  deliveryStreet2  String?
+  deliveryCity     String?
+  deliveryCounty   String?
+  deliveryPostcode String?
+  courierId        String?
+  courier          Courier? @relation(fields: [courierId], references: [id])
+  status           String   @default("PENDING")
+  notes            String?  @db.Text
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("customer_orders")
+}
+
+// =============================================================================
 // Marketing & LinkedIn Automation
 // =============================================================================
 
 model LinkedInAccount {
   id          String    @id @default(cuid())
   email       String    @unique
+  password    String?
   name        String?
   profileUrl  String?
   sessionData Json?
@@ -352,21 +512,29 @@ model MarketingCampaign {
 }
 
 model MarketingLead {
-  id            String             @id @default(cuid())
-  campaignId    String?
-  campaign      MarketingCampaign? @relation(fields: [campaignId], references: [id])
-  companyName   String
-  contactName   String?
-  contactEmail  String?
-  contactPhone  String?
-  website       String?
-  industry      String?
-  source        String?
-  notes         String?            @db.Text
-  status        String             @default("NEW")
-  metadata      Json?
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
+  id              String             @id @default(cuid())
+  campaignId      String?
+  campaign        MarketingCampaign? @relation(fields: [campaignId], references: [id])
+  pipelineStageId String?
+  pipelineStage   PipelineStage?     @relation(fields: [pipelineStageId], references: [id])
+  productId       String?
+  product         Product?           @relation(fields: [productId], references: [id])
+  categoryId      String?
+  category        ProductCategory?   @relation(fields: [categoryId], references: [id])
+  productIds      Json?
+  categoryIds     Json?
+  companyName     String?
+  contactName     String?
+  contactEmail    String?
+  contactPhone    String?
+  website         String?
+  industry        String?
+  source          String?
+  notes           String?            @db.Text
+  status          String             @default("NEW")
+  metadata        Json?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 
   outreachEmails OutreachEmail[]
 
@@ -423,4 +591,71 @@ model AIConversation {
   createdAt  DateTime @default(now())
 
   @@map("ai_conversations")
+}
+
+// =============================================================================
+// Crown Commercial Services (CCS) Framework Integration
+// =============================================================================
+
+model CcsFramework {
+  id            String    @id @default(cuid())
+  reference     String    @unique
+  title         String
+  description   String?   @db.Text
+  category      String
+  status        String    @default("LIVE")
+  startDate     DateTime?
+  endDate       DateTime?
+  websiteUrl    String?
+  maxValue      Decimal?  @db.Decimal(14, 2)
+  benefits      String?   @db.Text
+  productsServices String? @db.Text
+  howToBuy      String?   @db.Text
+  regulation    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  lots          CcsLot[]
+  opportunities CcsOpportunity[]
+
+  @@map("ccs_frameworks")
+}
+
+model CcsLot {
+  id           String       @id @default(cuid())
+  frameworkId  String
+  framework    CcsFramework @relation(fields: [frameworkId], references: [id], onDelete: Cascade)
+  lotNumber    String
+  title        String
+  description  String?      @db.Text
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@map("ccs_lots")
+}
+
+model CcsOpportunity {
+  id              String        @id @default(cuid())
+  frameworkId     String?
+  framework       CcsFramework? @relation(fields: [frameworkId], references: [id])
+  title           String
+  description     String?       @db.Text
+  buyerName       String?
+  status          String        @default("OPEN")
+  publishedDate   DateTime?
+  closingDate     DateTime?
+  value           Decimal?      @db.Decimal(14, 2)
+  region          String?
+  category        String?
+  noticeUrl       String?
+  notes           String?       @db.Text
+  bidStatus       String        @default("NOT_BIDDING")
+  bidDeadline     DateTime?
+  bidValue        Decimal?      @db.Decimal(14, 2)
+  assignedUserId  String?
+  assignedUser    User?         @relation("CcsOpportunityAssignedUser", fields: [assignedUserId], references: [id])
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@map("ccs_opportunities")
 }

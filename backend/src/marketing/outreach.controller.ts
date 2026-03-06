@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Body,
   Param,
@@ -57,6 +58,16 @@ export class OutreachController {
   @ApiOperation({ summary: 'Update a lead' })
   updateLead(@Param('id') id: string, @Body() dto: UpdateLeadDto) {
     return this.outreachService.updateLead(id, dto);
+  }
+
+  @Patch('leads/:id/stage')
+  @Roles(Role.ADMIN, Role.SALES_MANAGER, Role.PROCUREMENT_OFFICER)
+  @ApiOperation({ summary: 'Move a lead to a different pipeline stage' })
+  moveLeadStage(
+    @Param('id') id: string,
+    @Body() body: { stageId: string },
+  ) {
+    return this.outreachService.updateLead(id, { pipelineStageId: body.stageId });
   }
 
   @Delete('leads/:id')
