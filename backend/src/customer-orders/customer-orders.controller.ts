@@ -32,6 +32,12 @@ export class CustomerOrdersController {
     return this.customerOrdersService.findAll({ customerId, status });
   }
 
+  @Get('stats/active-count')
+  @ApiOperation({ summary: 'Get count of active customer orders (not shipped/delivered/cancelled)' })
+  getActiveCount() {
+    return this.customerOrdersService.getActiveCount();
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get a customer order by ID' })
   findOne(@Param('id') id: string) {
@@ -44,6 +50,14 @@ export class CustomerOrdersController {
   @ApiOperation({ summary: 'Update a customer order' })
   update(@Param('id') id: string, @Body() dto: UpdateCustomerOrderDto) {
     return this.customerOrdersService.update(id, dto);
+  }
+
+  @Post(':id/send-invoice')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SALES_MANAGER)
+  @ApiOperation({ summary: 'Send invoice email to customer' })
+  sendInvoice(@Param('id') id: string) {
+    return this.customerOrdersService.sendInvoice(id);
   }
 
   @Delete(':id')

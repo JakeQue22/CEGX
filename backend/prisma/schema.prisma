@@ -82,6 +82,12 @@ model CompanySettings {
   stripeLiveSecretKey  String?
   stripeMode           String   @default("test") // "test" or "live"
 
+  // Invoice Settings
+  invoicePrefix        String   @default("INV")
+  invoiceTerms         String?  @db.Text @default("Payment is due within 30 days of the invoice date. Please quote the invoice number when making payment.")
+  invoiceNotes         String?  @db.Text
+  invoiceFooter        String?  @db.Text
+
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 

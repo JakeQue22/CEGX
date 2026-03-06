@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
-const TABS = ['Company', 'Email', 'Payments', 'Notifications', 'Users'] as const;
+const TABS = ['Company', 'Email', 'Payments', 'Invoices', 'Notifications', 'Users'] as const;
 
 const ROLE_OPTIONS: { value: Role; label: string }[] = [
   { value: 'ADMIN', label: 'Admin' },
@@ -44,6 +44,7 @@ export default function SettingsPage() {
   const [emailForm, setEmailForm] = useState<Partial<CompanySettings>>({});
   const [notifForm, setNotifForm] = useState<Partial<CompanySettings>>({});
   const [paymentForm, setPaymentForm] = useState<Partial<CompanySettings>>({});
+  const [invoiceForm, setInvoiceForm] = useState<Partial<CompanySettings>>({});
 
   const emptyUserForm: CreateUserPayload = { name: '', email: '', phone: '', title: '', department: '', role: 'VIEWER', password: '', sendSetPasswordEmail: false, sendWelcomeEmail: false };
   const [userForm, setUserForm] = useState<CreateUserPayload>(emptyUserForm);
@@ -81,6 +82,7 @@ export default function SettingsPage() {
   const emailMerged = { ...settings, ...emailForm };
   const notifMerged = { ...settings, ...notifForm };
   const paymentMerged = { ...settings, ...paymentForm };
+  const invoiceMerged = { ...settings, ...invoiceForm };
 
   const [testEmailAddr, setTestEmailAddr] = useState('');
   const [testEmailResult, setTestEmailResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -121,6 +123,11 @@ export default function SettingsPage() {
   function setP(field: keyof CompanySettings) {
     return (e: React.ChangeEvent<HTMLInputElement>) =>
       setPaymentForm((f) => ({ ...f, [field]: e.target.value }));
+  }
+
+  function setI(field: keyof CompanySettings) {
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setInvoiceForm((f) => ({ ...f, [field]: e.target.value }));
   }
 
   function toggleNotif(field: keyof CompanySettings) {
@@ -334,6 +341,51 @@ export default function SettingsPage() {
 
           <div className="pt-2">
             <Button type="submit" loading={save.isPending}>Save Payment Settings</Button>
+          </div>
+        </form>
+      )}
+
+      {/* Invoices Tab */}
+      {tab === 'Invoices' && (
+        <form
+          onSubmit={(e) => { e.preventDefault(); save.mutate(invoiceForm); }}
+          className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-4"
+        >
+          <h2 className="text-base font-semibold text-gray-900">Invoice Settings</h2>
+          <p className="text-sm text-gray-500">Configure default settings for generated invoices.</p>
+          <Input label="Invoice Prefix" value={invoiceMerged.invoicePrefix ?? 'INV'} onChange={setI('invoicePrefix')} placeholder="INV" />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Payment Terms</label>
+            <textarea
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              rows={3}
+              value={invoiceMerged.invoiceTerms ?? ''}
+              onChange={setI('invoiceTerms')}
+              placeholder="Payment is due within 30 days of the invoice date..."
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Default Invoice Notes</label>
+            <textarea
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              rows={2}
+              value={invoiceMerged.invoiceNotes ?? ''}
+              onChange={setI('invoiceNotes')}
+              placeholder="Thank you for your business."
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Invoice Footer</label>
+            <textarea
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              rows={2}
+              value={invoiceMerged.invoiceFooter ?? ''}
+              onChange={setI('invoiceFooter')}
+              placeholder="Registered in England & Wales. Company No. ..."
+            />
+          </div>
+          <div className="pt-2">
+            <Button type="submit" loading={save.isPending}>Save Invoice Settings</Button>
           </div>
         </form>
       )}

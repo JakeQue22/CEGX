@@ -176,4 +176,25 @@ export class UpdateSettingsDto {
   @IsOptional()
   @IsIn(['test', 'live'])
   stripeMode?: string;
+
+  // Invoice Settings
+  @ApiPropertyOptional({ description: 'Invoice number prefix (e.g. INV)' })
+  @IsOptional()
+  @IsString()
+  invoicePrefix?: string;
+
+  @ApiPropertyOptional({ description: 'Default invoice payment terms' })
+  @IsOptional()
+  @IsString()
+  invoiceTerms?: string;
+
+  @ApiPropertyOptional({ description: 'Default invoice notes (shown on every invoice)' })
+  @IsOptional()
+  @IsString()
+  invoiceNotes?: string;
+
+  @ApiPropertyOptional({ description: 'Invoice footer text' })
+  @IsOptional()
+  @IsString()
+  invoiceFooter?: string;
 }

@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
+import { useQuery } from '@tanstack/react-query';
+import axiosInstance from '@/lib/axios';
 import { useSettingsStore } from '@/store/settingsStore';
 
 const navItems = [
@@ -175,6 +177,12 @@ export function Sidebar() {
   const pathname = usePathname();
   const { settings } = useSettingsStore();
 
+  const { data: activeOrderCount } = useQuery<{ count: number }>({
+    queryKey: ['customer-orders-active-count'],
+    queryFn: () => axiosInstance.get('/customer-orders/stats/active-count').then(r => r.data),
+    refetchInterval: 60000,
+  });
+
   return (
     <aside className="fixed inset-y-0 left-0 z-40 w-64 bg-[#1e293b] flex flex-col">
       {/* Logo / Company name */}
@@ -216,6 +224,11 @@ export function Sidebar() {
             >
               <span className={isActive ? 'text-blue-400' : 'text-slate-500'}>{item.icon}</span>
               {item.label}
+              {item.href === '/customer-orders' && activeOrderCount?.count ? (
+                <span className="ml-auto bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
+                  {activeOrderCount.count}
+                </span>
+              ) : null}
             </Link>
           );
         })}

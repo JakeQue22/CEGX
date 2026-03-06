@@ -69,6 +69,11 @@ export interface CompanySettings {
   stripeLivePublicKey?: string;
   stripeLiveSecretKey?: string;
   stripeMode?: string;
+  // Invoice Settings
+  invoicePrefix?: string;
+  invoiceTerms?: string;
+  invoiceNotes?: string;
+  invoiceFooter?: string;
   updatedAt: string;
 }
 
