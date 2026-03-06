@@ -117,7 +117,11 @@ export default function CustomerOrderDetailPage() {
     const printContent = invoiceRef.current;
     if (!printContent) return;
     const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
+    if (!printWindow) {
+      setStatusMessage('Pop-up blocked — please allow pop-ups for this site to print invoices.');
+      setTimeout(() => setStatusMessage(null), 5000);
+      return;
+    }
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
