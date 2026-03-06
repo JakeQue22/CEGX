@@ -167,7 +167,7 @@ export default function SettingsPage() {
           <Input label="Base Domain URL" type="url" value={merged.baseDomainUrl ?? ''} onChange={setC('baseDomainUrl')} placeholder="https://cegx.quantumonline.co.uk" />
           <Input label="Logo URL" type="url" value={merged.logoUrl ?? ''} onChange={setC('logoUrl')} placeholder="https://..." />
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Primary Brand Color</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Primary Brand Colour</label>
             <div className="flex items-center gap-3">
               <input
                 type="color"
