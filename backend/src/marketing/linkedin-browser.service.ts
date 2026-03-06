@@ -33,8 +33,13 @@ export class LinkedInBrowserService implements OnModuleDestroy {
   private async getBrowser(): Promise<Browser> {
     if (!this.browser || !this.browser.isConnected()) {
       this.logger.log('Launching headless Chromium browser');
+      const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+      if (executablePath) {
+        this.logger.log(`Using system Chromium at ${executablePath}`);
+      }
       this.browser = await chromium.launch({
         headless: true,
+        executablePath,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
